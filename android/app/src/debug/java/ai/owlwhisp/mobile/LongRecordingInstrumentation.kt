@@ -41,6 +41,10 @@ class LongRecordingInstrumentation : Instrumentation() {
                 while (true) { val chunk = reader.next() ?: break; check(!chunk.overlapsPrevious && chunk.start == end); end = chunk.end }
                 check(end == 80L * 16000)
             }
+            val quietSpeech = FloatArray(RecordingPolicy.CHUNK_SAMPLES)
+            for (i in 10 * 16000 until 12 * 16000) quietSpeech[i] = 0.0007f
+            check(AudioChunks.trimQuietMargins(quietSpeech).size == 3 * 16000)
+            check(AudioChunks.trimQuietMargins(FloatArray(16000)).isEmpty())
             check(AudioChunks.appendTranscript("Hello WORLD.", "world and more", true) == "Hello WORLD. and more")
             check(AudioChunks.appendTranscript("yes", "yes", false) == "yes yes")
             check(AudioChunks.appendTranscript("yes", "yes yes", true) == "yes yes")

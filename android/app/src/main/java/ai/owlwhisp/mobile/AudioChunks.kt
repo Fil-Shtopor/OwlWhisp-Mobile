@@ -37,12 +37,20 @@ class AudioChunks(file: File) : Closeable {
         /** Prefer a pause of at least 200 ms within the final five seconds of a chunk. */
         fun quietBoundary(samples: FloatArray): Int {
             val window = RecordingPolicy.SAMPLE_RATE / 50
+            var peakEnergy = 0.0
+            for (start in samples.indices step window) {
+                val end = minOf(start + window, samples.size)
+                var energy = 0.0
+                for (i in start until end) energy += samples[i].toDouble() * samples[i]
+                peakEnergy = maxOf(peakEnergy, energy / (end - start))
+            }
+            val quietEnergy = maxOf(1e-10, peakEnergy * 0.01)
             var run = -1; var bestLength = 0; var best = samples.size
             var cursor = maxOf(0, samples.size - RecordingPolicy.SAMPLE_RATE * 5)
             while (cursor + window <= samples.size) {
                 var energy = 0.0
                 for (i in cursor until cursor + window) energy += samples[i].toDouble() * samples[i]
-                if (energy / window < 0.0001) {
+                if (energy / window <= quietEnergy) {
                     if (run < 0) run = cursor
                     val length = cursor + window - run
                     if (length >= RecordingPolicy.SAMPLE_RATE / 5 && length >= bestLength) {
@@ -52,6 +60,24 @@ class AudioChunks(file: File) : Closeable {
                 cursor += window
             }
             return best
+        }
+        /** Framewise energy avoids losing quiet speech surrounded by long pauses. */
+        fun trimQuietMargins(samples: FloatArray): FloatArray {
+            val window = RecordingPolicy.SAMPLE_RATE / 10
+            var first = -1; var last = 0
+            for (start in samples.indices step window) {
+                val end = minOf(start + window, samples.size)
+                var energy = 0.0
+                for (i in start until end) energy += samples[i].toDouble() * samples[i]
+                if (energy / (end - start) >= 0.0005 * 0.0005) {
+                    if (first < 0) first = start
+                    last = end
+                }
+            }
+            if (first < 0) return FloatArray(0)
+            val padding = RecordingPolicy.SAMPLE_RATE / 2
+            val start = maxOf(0, first - padding); val end = minOf(samples.size, last + padding)
+            return if (start == 0 && end == samples.size) samples else samples.copyOfRange(start, end)
         }
         fun appendTranscript(existing: String, incoming: String, overlaps: Boolean): String {
             val next = incoming.trim()

@@ -12,7 +12,9 @@ PCM16 to a private temporary file, with no time limit by default and optional 1/
 auto-stop. Its owner and generation prevent a late result from reaching a different editor.
 After stop, a disk reader feeds at most 30 seconds of audio to each inference request. It
 prefers a 200 ms or longer quiet region in the final five seconds; continuous speech uses
-500 ms overlap and conservative duplicate-word stitching. Entire recordings are never read
+500 ms overlap and conservative duplicate-word stitching. Framewise energy detection preserves
+quiet utterances surrounded by long pauses and trims long silent margins before decoding.
+Entire recordings are never read
 into a single RAM buffer. Cancellation is checked between native inference chunks.
 
 A private bound service in :inference owns model sessions. The app passes bounded float PCM

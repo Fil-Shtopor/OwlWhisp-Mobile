@@ -2,7 +2,7 @@ Voice keyboard redesign and longer offline dictation on Android and iOS.
 
 - Replace the fixed 60-second recording cutoff with **No time limit by default**. Settings offers optional 1, 5 and 15 minute auto-stop limits.
 - Stream microphone audio to private PCM16 files instead of retaining a complete recording in RAM. Disk usage is approximately 1.83 MiB per minute; temporary audio is removed after completion/cancellation or recovered at startup.
-- Transcribe bounded chunks of at most 30 seconds after stopping, preferring pause boundaries. Continuous speech uses a 500 ms overlap with duplicate-word stitching and progress reporting.
+- Transcribe bounded chunks of at most 30 seconds after stopping, preferring pause boundaries. Continuous speech uses a 500 ms overlap with duplicate-word stitching and progress reporting. Framewise energy detection preserves quiet speech surrounded by long pauses.
 - Redesign Android voice input with a large circular microphone, smaller keyboard/settings icons, a recording timer and a stop icon.
 - Keep controls above gesture and three-button system navigation. Add guided setup for models, microphone permission and keyboard selection.
 - Add a prominent README download table with direct Android APK, iPhone IPA and simulator links.

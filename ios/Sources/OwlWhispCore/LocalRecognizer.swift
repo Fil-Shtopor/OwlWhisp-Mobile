@@ -3,9 +3,9 @@ import SherpaOnnx
 
 public actor LocalRecognizer {
     public init() {}
-    private func hasSpeech(_ samples: [Float]) throws -> Bool {
+    private func prepareAudio(_ samples: [Float]) throws -> [Float] {
         guard samples.count <= RecordingPolicy.chunkSamples, samples.allSatisfy({ $0.isFinite }) else { throw AudioError.invalidRecording }
-        return !samples.isEmpty && sqrt(samples.reduce(0.0) { $0 + Double($1) * Double($1) } / Double(samples.count)) >= 0.0005
+        return PCM16Chunks.trimQuietMargins(samples)
     }
     private func load(store: ModelStore) async throws -> SherpaOnnxOfflineRecognizer {
         try await store.verify(); try Task.checkCancellation()
@@ -24,9 +24,10 @@ public actor LocalRecognizer {
     }
     public func transcribe(store: ModelStore, samples: [Float]) async throws -> String {
         try Task.checkCancellation()
-        guard try hasSpeech(samples) else { return "" }
+        let audio = try prepareAudio(samples)
+        guard !audio.isEmpty else { return "" }
         let recognizer = try await load(store: store)
-        let text = recognizer.decode(samples: samples, sampleRate: 16_000).text
+        let text = recognizer.decode(samples: audio, sampleRate: 16_000).text
         try Task.checkCancellation()
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -36,9 +37,10 @@ public actor LocalRecognizer {
         var text = ""
         while let chunk = try chunks.next() {
             try Task.checkCancellation()
-            if try hasSpeech(chunk.samples) {
+            let audio = try prepareAudio(chunk.samples)
+            if !audio.isEmpty {
                 if recognizer == nil { recognizer = try await load(store: store) }
-                let part = recognizer!.decode(samples: chunk.samples, sampleRate: 16_000).text
+                let part = recognizer!.decode(samples: audio, sampleRate: 16_000).text
                 try Task.checkCancellation()
                 text = PCM16Chunks.appendTranscript(text, part, overlaps: chunk.overlapsPrevious)
             }

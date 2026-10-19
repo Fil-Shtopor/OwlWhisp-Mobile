@@ -39,6 +39,12 @@ final class PCM16ChunksTests: XCTestCase {
         while let chunk = try reader.next() { XCTAssertFalse(chunk.overlapsPrevious); XCTAssertEqual(chunk.start, end); end = chunk.end }
         XCTAssertEqual(end, 80 * 16000)
     }
+    func testQuietSpeechSurvivesLongSilentMargins() {
+        var samples = [Float](repeating: 0, count: RecordingPolicy.chunkSamples)
+        for i in (10 * 16000)..<(12 * 16000) { samples[i] = 0.0007 }
+        XCTAssertEqual(PCM16Chunks.trimQuietMargins(samples).count, 3 * 16000)
+        XCTAssertTrue(PCM16Chunks.trimQuietMargins([Float](repeating: 0, count: 16000)).isEmpty)
+    }
     func testOnlyOverlappingChunksRemoveRepeatedWords() {
         XCTAssertEqual(PCM16Chunks.appendTranscript("Hello WORLD.", "world and more", overlaps: true), "Hello WORLD. and more")
         XCTAssertEqual(PCM16Chunks.appendTranscript("yes", "yes", overlaps: false), "yes yes")

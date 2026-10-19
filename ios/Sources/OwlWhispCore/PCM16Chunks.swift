@@ -49,12 +49,20 @@ public final class PCM16Chunks {
     /// Prefer at least 200 ms of quiet in the final five seconds of a chunk.
     public static func quietBoundary(_ samples: [Float]) -> Int {
         let window = RecordingPolicy.sampleRate / 50
+        var peakEnergy = 0.0
+        for start in stride(from: 0, to: samples.count, by: window) {
+            let end = min(start + window, samples.count)
+            var energy = 0.0
+            for i in start..<end { energy += Double(samples[i]) * Double(samples[i]) }
+            peakEnergy = max(peakEnergy, energy / Double(end - start))
+        }
+        let quietEnergy = max(1e-10, peakEnergy * 0.01)
         var run = -1; var bestLength = 0; var best = samples.count
         var cursor = max(0, samples.count - RecordingPolicy.sampleRate * 5)
         while cursor + window <= samples.count {
             var energy = 0.0
             for i in cursor..<(cursor + window) { energy += Double(samples[i]) * Double(samples[i]) }
-            if energy / Double(window) < 0.0001 {
+            if energy / Double(window) <= quietEnergy {
                 if run < 0 { run = cursor }
                 let length = cursor + window - run
                 if length >= RecordingPolicy.sampleRate / 5 && length >= bestLength { bestLength = length; best = run + length / 2 }
@@ -62,6 +70,24 @@ public final class PCM16Chunks {
             cursor += window
         }
         return best
+    }
+    /// Framewise energy preserves quiet utterances even when a chunk contains long pauses.
+    public static func trimQuietMargins(_ samples: [Float]) -> [Float] {
+        let window = RecordingPolicy.sampleRate / 10
+        var first = -1; var last = 0
+        for start in stride(from: 0, to: samples.count, by: window) {
+            let end = min(start + window, samples.count)
+            var energy = 0.0
+            for i in start..<end { energy += Double(samples[i]) * Double(samples[i]) }
+            if energy / Double(end - start) >= 0.0005 * 0.0005 {
+                if first < 0 { first = start }
+                last = end
+            }
+        }
+        if first < 0 { return [] }
+        let padding = RecordingPolicy.sampleRate / 2
+        let start = max(0, first - padding); let end = min(samples.count, last + padding)
+        return start == 0 && end == samples.count ? samples : Array(samples[start..<end])
     }
     public static func appendTranscript(_ existing: String, _ incoming: String, overlaps: Bool) -> String {
         let next = incoming.trimmingCharacters(in: .whitespacesAndNewlines)
