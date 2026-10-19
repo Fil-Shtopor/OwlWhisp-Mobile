@@ -145,7 +145,7 @@ class MainActivity : Activity() {
                     val rows = json.getJSONArray("rows")
                     for (i in 0 until rows.length()) {
                         val row = rows.getJSONObject(i)
-                        content.addView(label(row.getString("file") + "\n" + String.format(Locale.ROOT, "WER %.1f%% · RTF %.2f · %.2f c", row.getDouble("wer") * 100, row.getDouble("rtf"), row.getLong("elapsed_ms") / 1000.0) + " · PSS max " + row.optInt("sampled_peak_pss_kib") / 1024 + " MiB"))
+                        content.addView(label(row.getString("file") + "\n" + String.format(Locale.ROOT, "WER %.1f%% · RTF %.2f · %.2f s", row.getDouble("wer") * 100, row.getDouble("rtf"), row.getLong("elapsed_ms") / 1000.0) + " · PSS max " + row.optInt("sampled_peak_pss_kib") / 1024 + " MiB"))
                         content.addView(label(row.getString("transcript"), true))
                     }
                     button("Share JSON report") {
