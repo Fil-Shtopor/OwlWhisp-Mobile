@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "model": "real verified Parakeet TDT 0.6B v3 INT8",
+  "navigation": "three-button",
+  "checks": [
+    "real IME controls above system navigation",
+    "microphone started actual capture",
+    "keyboard button cancelled capture and restored Gboard",
+    "settings icon opened setup and cancelled capture"
+  ],
+  "ready_layout": {
+    "panel": "0,1617,1080,2274",
+    "microphone": "419,1908,660,2149",
+    "keyboard": "143,1966,269,2092",
+    "settings": "810,1966,936,2092",
+    "navigation_bottom": 126,
+    "bottom_padding": 42,
+    "decor": "0,1617,1080,2400",
+    "recording": false,
+    "microphone_enabled": true
+  },
+  "apk_sha256": "595526ddcb9bbd59762c5255976b5c0befd47be18455563100622d034c4273db"
+}

@@ -1,3 +1,24 @@
+# Voice panel redesign
+
+Android 0.1.2 now uses a 92 dp circular microphone and 48 dp keyboard/settings icon buttons.
+Debug and unsigned release builds and both lint variants passed. Layout instrumentation on
+the isolated Pixel 6 API 34 x86_64 emulator exercised eight combinations: gesture/three-button
+navigation, a host drawing behind navigation/a host already reserving it, and ready/recording
+states. All controls stayed above the real system navigation bounds. Insets were counted once,
+and the centered microphone remained larger than the side buttons. The test uses the production
+panel inside debug-only host activities; it does not claim to exercise ASR. Separate real-IME
+checks used the cached, verified ordinary Parakeet files: the microphone started actual capture,
+the left button cancelled capture and restored Gboard, and the right button cancelled capture
+and opened setup. See validation/android-voice-panel-actions-0.1.2.json and the ready/recording
+PNG previews in validation/. The host activities
+and rendering instrumentation are excluded from release builds.
+
+The first check exposed a stale measurement when padding changed during layout. Insets now
+update after that layout pass, allowing a fresh measurement before displaying controls.
+See validation/android-voice-panel-0.1.2.json and scripts/android-panel-smoke.py. Physical Samsung
+validation of the new panel remains outstanding. The UI update does not change the 60-second
+capture limit, which is a prototype bound rather than an OS restriction.
+
 # Keyboard setup and iOS packaging follow-up
 
 Recorded 2026-10-19. Android 0.1.2 application sources at commit 2e4dea7 were compiled as debug

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity android:name=".PanelPreviewActivity" android:exported="false" />
+    </application>
+    <instrumentation android:name=".PanelInsetsInstrumentation" android:targetPackage="ai.owlwhisp.mobile"
+        android:label="Voice panel navigation geometry checks" />
     <instrumentation android:name=".SmokeInstrumentation" android:targetPackage="ai.owlwhisp.mobile"
         android:label="Offline Parakeet smoke check" />
 </manifest>

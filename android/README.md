@@ -18,6 +18,16 @@ button on the navigation bar so you can switch while a text field is focused. Sa
 Voice input provider page may offer only Samsung and Google; use the system keyboard list.
 The IME settings shortcut also opens this setup screen. No ADB commands are needed.
 
+The voice panel has a large circular microphone in the center, a smaller keyboard button on
+the left and settings on the right. Recording switches the microphone to a stop icon and
+shows elapsed time. Icon buttons have English accessibility labels and at least 48 dp touch
+targets. Navigation insets are applied only where the panel actually overlaps the system
+navigation area, including hosts that already reserve that area.
+
+Run `python scripts/android-panel-smoke.py --serial emulator-5580` for the debug rendering
+checks with both gesture and three-button navigation. The test uses real Android windows
+with and without a reserved navigation area; no recognition model is used by this layout test.
+
 Capture is limited to 60 seconds. Leaving the capture surface cancels delivery. PCM moves to
 inference through a private temporary file that is deleted after processing; no audio is uploaded.
 

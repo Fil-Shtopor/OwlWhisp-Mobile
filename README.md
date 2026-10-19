@@ -12,10 +12,13 @@ including Russian. Models download separately from the APK.
 
 Published Android version: 0.1.1. The guided keyboard setup and regular selectable IME on
 main are prepared for 0.1.2; a signed update has not been published yet.
+[Voice panel preview](docs/validation/android-voice-panel-ready.png) /
+[recording state](docs/validation/android-voice-panel-recording.png).
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
 - OwlWhisp's owl icon and dark palette.
 - Microphone capture, editable transcript, clipboard copy and a voice input method (IME).
+- On main: a circular microphone with smaller keyboard/settings buttons, recording timer and navigation-safe spacing.
 - Verified downloads, model selection, repair and deletion.
 - Local FLEURS EN/RU benchmark, WER, cold latency, RTF, sampled maximum PSS and JSON sharing.
 - Disposable inference process: immediate unloading by default. Parakeet can optionally stay
@@ -87,7 +90,9 @@ Supply --adb with the SDK adb path when it is not on PATH.
 
 [Validation results](docs/validation.md) distinguish emulator measurements from phone performance.
 Keep the app open while downloading or benchmarking. Downloads are not resumable. Recording
-is limited to 60 seconds; recognition starts when recording stops. Android passes temporary
+is limited to 60 seconds; recognition starts when recording stops. This is a prototype bound
+in the recorder and inference pipeline, not an Android/iOS limit. Longer sessions need coordinated
+capture/inference changes and phone memory/latency checks, preferably with speech chunking. Android passes temporary
 PCM through private cache files and deletes it after processing or at the next main-app start.
 iOS holds recording audio in memory. There is no streaming partial transcript.
 

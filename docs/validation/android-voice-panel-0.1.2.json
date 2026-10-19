@@ -1,0 +1,116 @@
+{
+  "status": "passed",
+  "serial": "emulator-5580",
+  "scope": "debug panel rendering, real navigation bars, both host inset behaviors",
+  "rows": {
+    "gestural": [
+      {
+        "panel": "0,1680,1080,2400",
+        "microphone": "419,1971,660,2212",
+        "keyboard": "143,2029,269,2155",
+        "settings": "810,2029,936,2155",
+        "navigation_bottom": 63,
+        "bottom_padding": 105,
+        "decor": "0,0,1080,2400",
+        "recording": false,
+        "microphone_enabled": true,
+        "host_reserves_navigation": false,
+        "test_recording_state": false
+      },
+      {
+        "panel": "0,1680,1080,2400",
+        "microphone": "419,1971,660,2212",
+        "keyboard": "143,2029,269,2155",
+        "settings": "810,2029,936,2155",
+        "navigation_bottom": 63,
+        "bottom_padding": 105,
+        "decor": "0,0,1080,2400",
+        "recording": true,
+        "microphone_enabled": true,
+        "host_reserves_navigation": false,
+        "test_recording_state": true
+      },
+      {
+        "panel": "0,1680,1080,2337",
+        "microphone": "419,1971,660,2212",
+        "keyboard": "143,2029,269,2155",
+        "settings": "810,2029,936,2155",
+        "navigation_bottom": 63,
+        "bottom_padding": 42,
+        "decor": "0,0,1080,2400",
+        "recording": false,
+        "microphone_enabled": true,
+        "host_reserves_navigation": true,
+        "test_recording_state": false
+      },
+      {
+        "panel": "0,1680,1080,2337",
+        "microphone": "419,1971,660,2212",
+        "keyboard": "143,2029,269,2155",
+        "settings": "810,2029,936,2155",
+        "navigation_bottom": 63,
+        "bottom_padding": 42,
+        "decor": "0,0,1080,2400",
+        "recording": true,
+        "microphone_enabled": true,
+        "host_reserves_navigation": true,
+        "test_recording_state": true
+      }
+    ],
+    "threebutton": [
+      {
+        "panel": "0,1617,1080,2400",
+        "microphone": "419,1908,660,2149",
+        "keyboard": "143,1966,269,2092",
+        "settings": "810,1966,936,2092",
+        "navigation_bottom": 126,
+        "bottom_padding": 168,
+        "decor": "0,0,1080,2400",
+        "recording": false,
+        "microphone_enabled": true,
+        "host_reserves_navigation": false,
+        "test_recording_state": false
+      },
+      {
+        "panel": "0,1617,1080,2400",
+        "microphone": "419,1908,660,2149",
+        "keyboard": "143,1966,269,2092",
+        "settings": "810,1966,936,2092",
+        "navigation_bottom": 126,
+        "bottom_padding": 168,
+        "decor": "0,0,1080,2400",
+        "recording": true,
+        "microphone_enabled": true,
+        "host_reserves_navigation": false,
+        "test_recording_state": true
+      },
+      {
+        "panel": "0,1617,1080,2274",
+        "microphone": "419,1908,660,2149",
+        "keyboard": "143,1966,269,2092",
+        "settings": "810,1966,936,2092",
+        "navigation_bottom": 126,
+        "bottom_padding": 42,
+        "decor": "0,0,1080,2400",
+        "recording": false,
+        "microphone_enabled": true,
+        "host_reserves_navigation": true,
+        "test_recording_state": false
+      },
+      {
+        "panel": "0,1617,1080,2274",
+        "microphone": "419,1908,660,2149",
+        "keyboard": "143,1966,269,2092",
+        "settings": "810,1966,936,2092",
+        "navigation_bottom": 126,
+        "bottom_padding": 42,
+        "decor": "0,0,1080,2400",
+        "recording": true,
+        "microphone_enabled": true,
+        "host_reserves_navigation": true,
+        "test_recording_state": true
+      }
+    ]
+  },
+  "apk_sha256": "595526ddcb9bbd59762c5255976b5c0befd47be18455563100622d034c4273db"
+}
