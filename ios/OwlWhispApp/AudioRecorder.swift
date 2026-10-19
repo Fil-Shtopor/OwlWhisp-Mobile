@@ -50,7 +50,8 @@ final class AudioRecorder {
             var bytes = Data(count: count * 2)
             bytes.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
                 for i in 0..<count {
-                    let value = Int16((max(-1, min(1, channel[i])) * 32767).rounded())
+                    let sample = channel[i].isFinite ? channel[i] : 0
+                    let value = Int16((max(-1, min(1, sample)) * 32767).rounded())
                     let unsigned = UInt16(bitPattern: value)
                     raw[2 * i] = UInt8(truncatingIfNeeded: unsigned); raw[2 * i + 1] = UInt8(truncatingIfNeeded: unsigned >> 8)
                 }

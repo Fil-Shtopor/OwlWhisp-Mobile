@@ -71,8 +71,11 @@ adapters and a keyboard extension remain future work for iOS. Apple custom keybo
 extensions cannot directly access the microphone; dictation runs in the main app, followed
 by copy or share into another app.
 
-Weights are CC-BY-4.0 and download separately. Audio is bounded to 60 seconds and retained in
-memory during a job. The app sends neither audio nor transcripts to a transcription service.
+Weights are CC-BY-4.0 and download separately. Recording has no time limit by default; Settings offers optional 1, 5 and 15 minute limits.
+Private PCM16 audio is streamed to a temporary file, about 1.83 MiB per minute, and read back
+in chunks of at most 30 seconds. Pause boundaries are preferred; continuous speech uses a
+500 ms overlap with duplicate-word stitching. The complete recording is not retained in RAM.
+Audio is deleted after completion/cancellation, and abandoned files are cleaned at startup. The app sends neither audio nor transcripts to a transcription service.
 
 References: [Apple device distribution](https://developer.apple.com/documentation/xcode/distributing-your-app-to-registered-devices),
 [Apple developer accounts](https://developer.apple.com/help/account/basics/about-your-developer-account),

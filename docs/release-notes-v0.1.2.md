@@ -1,18 +1,22 @@
-Unreleased: Android voice panel redesign, keyboard setup and reproducible iOS packages.
+Voice keyboard redesign and longer offline dictation on Android and iOS.
 
-- Replace the stacked voice-IME buttons with a large circular microphone, a smaller keyboard button on the left and settings on the right.
-- Add a recording timer, a stop icon and a processing indicator, with accessible button descriptions.
-- Keep controls above gesture and three-button system navigation; avoid counting insets twice when Android already reserves the navigation area.
-- Exercise both navigation modes, both host inset behaviors and ready/recording states in debug rendering instrumentation.
-- Replace the auxiliary ru_RU input subtype with a regular, language-neutral selectable keyboard.
-- Add Voice keyboard setup with model readiness, microphone permission, keyboard enablement/selection status, system settings and picker buttons, and a test field.
-- Open the same setup screen from Android's IME settings shortcut and the voice input panel.
-- Disable voice capture when microphone permission is missing and provide setup guidance.
-- Verify real system-settings enablement and picker selection on an Android API 34 emulator without ADB IME commands.
-- Build and upload unsigned ARM64 iPhone IPAs and universal simulator app ZIPs in CI, with package checksums and platform metadata.
-- Add personal-signing instructions for iPhone and a workflow to backfill existing releases.
+- Replace the fixed 60-second recording cutoff with **No time limit by default**. Settings offers optional 1, 5 and 15 minute auto-stop limits.
+- Stream microphone audio to private PCM16 files instead of retaining a complete recording in RAM. Disk usage is approximately 1.83 MiB per minute; temporary audio is removed after completion/cancellation or recovered at startup.
+- Transcribe bounded chunks of at most 30 seconds after stopping, preferring pause boundaries. Continuous speech uses a 500 ms overlap with duplicate-word stitching and progress reporting.
+- Redesign Android voice input with a large circular microphone, smaller keyboard/settings icons, a recording timer and a stop icon.
+- Keep controls above gesture and three-button system navigation. Add guided setup for models, microphone permission and keyboard selection.
+- Add a prominent README download table with direct Android APK, iPhone IPA and simulator links.
 
-The Android update must use the existing release signing identity before publication. No signed
-0.1.2 APK has been published yet. iOS device packages require signing before installation;
-there is no TestFlight distribution or iOS keyboard extension. Physical Samsung/iPhone runtime
-validation remains outstanding.
+Downloads:
+
+- `OwlWhisp-Mobile-0.1.2-android.apk`: signed Android 9+ APK for ARM64 and x86_64, using the existing signing identity. Install over 0.1.0/0.1.1 to update.
+- `OwlWhisp-Mobile-0.1.2-ios-unsigned.ipa`: ARM64 iPhone/iPad build for iOS 16+. **Requires personal signing before installation**; it is not a TestFlight/App Store build. See [iPhone installation](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/blob/main/ios/README.md#personal-signing-from-windows-or-macos).
+- `OwlWhisp-Mobile-0.1.2-ios-simulator.app.zip`: macOS/Xcode simulator app for ARM64/x86_64; does not install on an iPhone.
+- `SHA256SUMS`, `iOS-SHA256SUMS`, `source-commit.txt` and `ios-build-info.json`: checksums and build provenance.
+
+Models download separately. Ordinary Parakeet is the default. Whistle remains ARM64-only and
+needs physical-phone recognition validation. iOS currently supports ordinary Parakeet in the
+main app with copy/share; there is no iOS keyboard extension. Longer recordings still require
+foreground capture and enough local storage; processing begins after you stop. Model memory
+is separate from audio-buffer memory, and chunk boundaries can affect punctuation or words.
+Physical iPhone runtime validation remains outstanding.

@@ -2,6 +2,7 @@ package ai.owlwhisp.mobile
 
 import android.app.Activity
 import android.app.Instrumentation
+import android.content.Intent
 import android.os.Bundle
 import org.json.JSONArray
 import org.json.JSONObject
@@ -46,6 +47,8 @@ class LongRecordingInstrumentation : Instrumentation() {
             val repository = ModelRepository(targetContext)
             val seconds = options.getString("capture_seconds", "0")!!.toInt()
             if (seconds > 0) {
+                startActivitySync(Intent(targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                waitForIdleSync()
                 val limits = AtomicInteger(0)
                 var error: String? = null
                 recorder = AudioRecorder(targetContext, 0, { limits.incrementAndGet() }, { error = it })

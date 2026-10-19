@@ -99,7 +99,7 @@ final class TranscriptionModel: ObservableObject {
             do {
                 let result = try await recognizer.transcribeRecording(store: store, url: audio) { value in
                     Task { @MainActor [weak self] in
-                        guard self?.generation == token else { return }
+                        guard self?.generation == token, self?.phase == .processing else { return }
                         self?.status = "Transcribing on device: " + String(Int(value * 100)) + "%"
                     }
                 }

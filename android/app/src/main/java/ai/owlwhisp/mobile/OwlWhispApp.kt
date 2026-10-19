@@ -44,7 +44,7 @@ class OwlWhispApp : Application() {
     fun removeObserver(listener: (AppState) -> Unit) { listeners.remove(listener) }
     private fun publish(next: AppState) { state = next; listeners.toList().forEach { it(next) } }
     fun refresh() {
-        if (!busy) publish(AppState(Phase.IDLE, if (model.present()) "Ready Â· " + model.name else "Download a model in the Models tab"))
+        if (!busy) publish(AppState(Phase.IDLE, if (model.present()) "Ready · " + model.name else "Download a model in the Models tab"))
     }
     fun selectModel(id: String) {
         if (busy || models.none { it.id == id && it.supported }) return
@@ -80,7 +80,7 @@ class OwlWhispApp : Application() {
     }
     fun deleteModel(repository: ModelRepository) {
         if (busy) return
-        publish(AppState(Phase.PROCESSING, "Removing modelâ€¦"))
+        publish(AppState(Phase.PROCESSING, "Removing model…"))
         worker.execute {
             client.unload(); repository.delete()
             main.post { publish(AppState(Phase.IDLE, "Model removed from device")) }
@@ -89,7 +89,7 @@ class OwlWhispApp : Application() {
     fun runBenchmark() {
         if (busy || !model.present()) return
         val repository = model
-        publish(AppState(Phase.BENCHMARK, "Preparing benchmarkâ€¦"))
+        publish(AppState(Phase.BENCHMARK, "Preparing benchmark…"))
         worker.execute {
             try {
                 client.unload()
@@ -124,7 +124,7 @@ class OwlWhispApp : Application() {
         val audio = recorder ?: return
         val token = generation; val callback = deliver; val repository = model
         recorder = null; audio.requestStop()
-        publish(AppState(Phase.PROCESSING, "Transcribing on deviceâ€¦"))
+        publish(AppState(Phase.PROCESSING, "Transcribing on device…"))
         worker.execute {
             try {
                 val file = audio.finish()
@@ -135,7 +135,7 @@ class OwlWhispApp : Application() {
                 main.post {
                     if (generation == token) {
                         owner = null; deliver = null
-                        lastMetrics = "Last run: " + result.elapsedMs + " ms Â· PSS max " + result.peakPssKiB / 1024 + " MiB"
+                        lastMetrics = "Last run: " + result.elapsedMs + " ms · PSS max " + result.peakPssKiB / 1024 + " MiB"
                         publish(AppState(Phase.IDLE, if (result.text.isBlank()) "No speech detected" else "Ready"))
                         callback?.invoke(result.text)
                         if (warmSeconds > 0) main.postDelayed(idleRelease, warmSeconds * 1000L)

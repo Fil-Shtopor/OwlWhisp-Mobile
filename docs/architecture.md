@@ -7,8 +7,13 @@ in research/desktop-audit-2026-10-19.md predates the user's separate-repository 
 ## Android
 
 The Kotlin host owns permissions, capture, editor identity, model storage, settings and UI.
-One serial application worker coordinates downloads and jobs. Recording is bounded to 60 s at
-16 kHz mono; its owner and generation prevent a late result from reaching a different editor.
+One serial application worker coordinates downloads and jobs. Recording streams mono 16 kHz
+PCM16 to a private temporary file, with no time limit by default and optional 1/5/15 minute
+auto-stop. Its owner and generation prevent a late result from reaching a different editor.
+After stop, a disk reader feeds at most 30 seconds of audio to each inference request. It
+prefers a 200 ms or longer quiet region in the final five seconds; continuous speech uses
+500 ms overlap and conservative duplicate-word stitching. Entire recordings are never read
+into a single RAM buffer. Cancellation is checked between native inference chunks.
 
 A private bound service in :inference owns model sessions. The app passes bounded float PCM
 through a private cache file, not through Binder's limited message buffer. Files are removed in
@@ -39,9 +44,11 @@ is outside the app's control.
 
 ## iOS
 
-SwiftUI owns the same five tabs; AVAudioEngine/AVAudioConverter produce bounded mono 16 kHz
-audio. Actors isolate downloads and recognition. The ordinary Parakeet session is local to
-each recognition call, then released. Background/interruption events stop capture and invalidate
+SwiftUI owns the same five tabs; AVAudioEngine/AVAudioConverter stream mono 16 kHz PCM16 to
+a private temporary file. The same no-limit default, optional auto-stop settings and bounded
+chunk/pause/overlap policy apply. Actors isolate downloads and recognition. The ordinary
+Parakeet session is reused across one recording's chunks, then released. Temporary audio is
+removed after the job/cancellation, and abandoned files are cleaned on the next startup. Background/interruption events stop capture and invalidate
 delivery. Permission callbacks also check the active application state.
 
 The iOS baseline includes model installation/deletion and the six-clip Parakeet benchmark.

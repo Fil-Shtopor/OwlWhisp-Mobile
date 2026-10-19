@@ -1,3 +1,23 @@
+# 0.1.2 recording policy
+
+The release records without a time limit by default on both platforms, with optional 1, 5 and
+15 minute auto-stop settings. Capture streams private mono 16 kHz PCM16 to disk, approximately
+1.83 MiB per minute. Inference receives at most 30 seconds per request, with pause-aware
+boundaries and overlap stitching. The complete recording is not kept in a RAM array.
+
+Swift package checks include 80-second file coverage, pause boundaries, overlap handling,
+empty/truncated audio and the unlimited default. Android debug instrumentation contains the
+same coverage checks and a real microphone/Parakeet long-recording test. Reproduction:
+
+    adb -s emulator-5580 shell am instrument -w -e capture_seconds 170 -e recognize true ai.owlwhisp.mobile/ai.owlwhisp.mobile.LongRecordingInstrumentation
+
+Install the debug APK, grant microphone permission and stage the verified ordinary Parakeet
+files with the existing smoke-test tooling first. The capture test opens its activity so the
+microphone remains in the foreground. It removes its private temporary audio after testing.
+
+The sections below preserve earlier development measurements. Their duration limits and
+pending-signing statements apply to those earlier builds, before the 0.1.2 recording changes.
+
 # Voice panel redesign
 
 Android 0.1.2 now uses a 92 dp circular microphone and 48 dp keyboard/settings icon buttons.

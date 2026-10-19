@@ -28,7 +28,11 @@ Run `python scripts/android-panel-smoke.py --serial emulator-5580` for the debug
 checks with both gesture and three-button navigation. The test uses real Android windows
 with and without a reserved navigation area; no recognition model is used by this layout test.
 
-Capture is limited to 60 seconds. Leaving the capture surface cancels delivery. PCM moves to
-inference through a private temporary file that is deleted after processing; no audio is uploaded.
+Capture has no time limit by default. Choose No time limit, 1 minute, 5 minutes or 15 minutes
+in Settings > Recording. PCM16 is written to a private cache file, about 1.83 MiB per minute,
+and read in chunks of at most 30 seconds after stopping. Pause boundaries are preferred;
+continuous speech uses a 500 ms overlap with duplicate-word stitching. Only bounded audio
+buffers are held in RAM. Leaving the capture surface cancels delivery. Temporary recordings
+are deleted after completion/cancellation or recovered at the next app start. No audio is uploaded.
 
 See ../docs/validation.md for emulator checks, known limits and raw benchmark results.
