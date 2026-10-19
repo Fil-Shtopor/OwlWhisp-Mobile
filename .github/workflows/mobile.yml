@@ -36,7 +36,9 @@ jobs:
       - run: swift test
         working-directory: ios
       - run: brew install xcodegen
-      - run: xcodegen generate
-        working-directory: ios
-      - run: xcodebuild -project OwlWhispMobile.xcodeproj -scheme OwlWhispMobile -sdk iphonesimulator -destination "generic/platform=iOS Simulator" CODE_SIGNING_ALLOWED=NO build
-        working-directory: ios
+      - run: python3 scripts/build_ios.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: .cache/ios-release/*
+          if-no-files-found: error

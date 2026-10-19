@@ -10,9 +10,13 @@ ordinary Parakeet, Redux, Whistle (ARM64 only) and English Phonon-2. Weights dow
 with size/SHA-256 checks. The private :inference process is released by default after every job.
 The Parakeet keep-ready option expires after 30 or 300 seconds.
 
-Voice input is an auxiliary IME: enable it in system keyboard settings, grant microphone access
-in the app and switch to OwlWhisp with Android's keyboard picker. Samsung's own microphone
-provider selection is controlled by Samsung.
+Voice input is a regular selectable IME. Open **Set up voice keyboard** in Dictate or Settings.
+The setup screen checks model availability, microphone permission, keyboard enablement and
+selection. Enable OwlWhisp in system keyboard settings, then choose it with the system picker.
+On Samsung: Settings > General management > Keyboard list and default. Enable the keyboard
+button on the navigation bar so you can switch while a text field is focused. Samsung's own
+Voice input provider page may offer only Samsung and Google; use the system keyboard list.
+The IME settings shortcut also opens this setup screen. No ADB commands are needed.
 
 Capture is limited to 60 seconds. Leaving the capture surface cancels delivery. PCM moves to
 inference through a private temporary file that is deleted after processing; no audio is uploaded.

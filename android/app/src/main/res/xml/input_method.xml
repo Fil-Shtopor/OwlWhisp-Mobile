@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="ai.owlwhisp.mobile.MainActivity"
+    android:settingsActivity="ai.owlwhisp.mobile.KeyboardSetupActivity"
     android:supportsSwitchingToNextInputMethod="true">
-    <subtype android:label="OwlWhisp" android:imeSubtypeLocale="ru_RU"
-        android:imeSubtypeMode="voice" android:isAuxiliary="true"
+    <!-- A regular selectable IME, with automatic language detection by the model.
+         Auxiliary voice subtypes are hidden in Android's default-keyboard list. -->
+    <subtype android:label="@string/voice_keyboard"
+        android:subtypeId="1"
+        android:imeSubtypeMode="keyboard"
+        android:isAuxiliary="false"
         android:overridesImplicitlyEnabledSubtype="true" />
 </input-method>

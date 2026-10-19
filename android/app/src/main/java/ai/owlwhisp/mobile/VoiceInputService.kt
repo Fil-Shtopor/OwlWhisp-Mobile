@@ -1,7 +1,6 @@
 package ai.owlwhisp.mobile
 
 import android.content.Intent
-import android.graphics.Color
 import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -16,8 +15,12 @@ class VoiceInputService : InputMethodService() {
     private var microphone: Button? = null
     private var editorGeneration = 0L
     private val observer: (AppState) -> Unit = { state ->
-        status?.text = state.message
-        microphone?.isEnabled = app.model.present() && (state.phase in setOf(Phase.IDLE, Phase.ERROR) || (state.phase == Phase.RECORDING && app.isOwner(this)))
+        status?.text = when {
+            !VoiceKeyboard.microphoneGranted(this) -> "Allow microphone access in Voice keyboard setup."
+            !app.model.present() -> "Download a model in Voice keyboard setup."
+            else -> state.message
+        }
+        microphone?.isEnabled = VoiceKeyboard.microphoneGranted(this) && app.model.present() && (state.phase in setOf(Phase.IDLE, Phase.ERROR) || (state.phase == Phase.RECORDING && app.isOwner(this)))
         microphone?.text = if (state.phase == Phase.RECORDING && app.isOwner(this)) "Stop and insert" else "Dictate"
     }
     override fun onCreate() { super.onCreate(); app.observe(observer) }
@@ -53,10 +56,10 @@ class VoiceInputService : InputMethodService() {
             }
         })
         root.addView(Button(this).apply {
-            text = "Set up model and microphone"
+            text = "Voice keyboard setup"
             setOnClickListener {
                 app.cancel(this@VoiceInputService)
-                startActivity(Intent(this@VoiceInputService, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                startActivity(Intent(this@VoiceInputService, KeyboardSetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         })
         observer(app.state)
@@ -66,6 +69,7 @@ class VoiceInputService : InputMethodService() {
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         editorGeneration++; app.cancel(this)
         super.onStartInput(attribute, restarting)
+        observer(app.state)
     }
     override fun onFinishInputView(finishingInput: Boolean) {
         editorGeneration++; app.cancel(this)

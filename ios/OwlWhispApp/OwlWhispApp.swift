@@ -100,7 +100,7 @@ private struct ContentView: View {
             }.tabItem { Label("Benchmark", systemImage: "chart.bar") }
             NavigationStack {
                 Form {
-                    Section("OwlWhisp Mobile 0.1.1") {
+                    Section("OwlWhisp Mobile 0.1.2") {
                         Text(UIDevice.current.model + " · iOS " + UIDevice.current.systemVersion)
                         Text("CPU · 2 threads · sherpa-onnx 1.13.6")
                         Text(model.ready ? "Parakeet downloaded to device" : "No model on device")

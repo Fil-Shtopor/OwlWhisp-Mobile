@@ -3,12 +3,12 @@
 Offline voice input for Android and iPhone, in a separate repository from
 [OwlWhisp Desktop](https://github.com/Fil-Shtopor/OwlWhisp).
 
-[Download Android 0.1.1](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.1)
+[Download Android and iOS 0.1.2](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.2)
 
 The default model is **ordinary NVIDIA Parakeet TDT 0.6B v3 INT8**, with 25 languages,
 including Russian. Models download separately from the APK.
 
-## Android 0.1.1
+## Android 0.1.2
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
 - OwlWhisp's owl icon and dark palette.
@@ -30,17 +30,19 @@ Parakeet, Redux and Phonon passed real recognition checks on an Android API 34 x
 emulator. Whistle's ARM64 adapter compiles, but needs validation on a physical ARM64 phone.
 A smaller download does not imply the same amount of RAM during recognition.
 
-Enable OwlWhisp in Android's keyboard settings and switch to it through the system keyboard
-picker. Samsung Keyboard's microphone button depends on Samsung's supported providers; the
+Open **Set up voice keyboard** in Dictate or Settings, allow the microphone, enable OwlWhisp
+in Android's keyboard settings and select it through the system keyboard picker. Samsung Keyboard's microphone button depends on Samsung's supported providers; the
 app provides its own voice IME. Android 9/API 28+; ARM64 phones and x86_64 emulators.
 
 ## iOS
 
 SwiftUI app with the same five sections, branding, ordinary Parakeet, foreground microphone
 capture/resampling, verified downloads, local benchmark, copy and share. Swift tests and an
-iOS simulator build pass in GitHub Actions. It has not been tested on a physical iPhone.
+iOS device archive and simulator build pass in GitHub Actions. It has not been tested on a physical iPhone.
 Redux, Whistle and Phonon adapters and a keyboard extension are not yet implemented on iOS.
-There is no signed IPA/App Store release.
+Releases include an **unsigned ARM64 iPhone IPA** and a **simulator app ZIP**. The IPA requires
+Apple signing before installation; the simulator ZIP requires macOS/Xcode. There is no
+TestFlight/App Store distribution yet. See [iOS installation and signing](ios/README.md).
 
 ## Build
 
@@ -62,7 +64,8 @@ See [release signing](docs/releasing.md). iOS requires macOS, Xcode and XcodeGen
     cd ios
     swift test
     xcodegen generate
-    xcodebuild -project OwlWhispMobile.xcodeproj -scheme OwlWhispMobile -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+    cd ..
+    python3 scripts/build_ios.py
 
 Choose your Apple signing team to install on a physical iPhone.
 

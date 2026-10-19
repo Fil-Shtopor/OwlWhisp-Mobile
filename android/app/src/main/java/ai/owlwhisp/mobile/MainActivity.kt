@@ -44,7 +44,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         savedText = savedInstanceState?.getString("transcript").orEmpty()
-        currentTab = savedInstanceState?.getInt("tab") ?: 0
+        currentTab = savedInstanceState?.getInt("tab") ?: intent.getIntExtra("tab", 0).coerceIn(0, 4)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(20), dp(20), dp(16)); setBackgroundColor(Palette.bg)
         }
@@ -100,6 +100,7 @@ class MainActivity : Activity() {
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
                     setText(savedText)
                 }.also { content.addView(it, LinearLayout.LayoutParams(-1, dp(200))) }
+                button("Set up voice keyboard") { startActivity(Intent(this, KeyboardSetupActivity::class.java)) }
                 button("Copy text") { copy(transcript?.text.toString()) }
                 button("Clear") { savedText = ""; transcript?.setText("") }
                 content.addView(label("Recordings are limited to 60 seconds. Audio is deleted after processing.", true))
@@ -112,7 +113,8 @@ class MainActivity : Activity() {
                 }
                 button("Unload now") { app.unload() }
                 title("Voice keyboard")
-                button("Enable OwlWhisp in Android settings") { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
+                content.addView(label(if (VoiceKeyboard.enabled(this)) "OwlWhisp keyboard is enabled" else "OwlWhisp keyboard is not enabled", true))
+                button("Set up voice keyboard") { startActivity(Intent(this, KeyboardSetupActivity::class.java)) }
                 button("Choose keyboard") { getSystemService(InputMethodManager::class.java).showInputMethodPicker() }
                 content.addView(label("On Samsung, select OwlWhisp with the system keyboard picker. Samsung controls which providers its microphone button can open; remapping that button is not guaranteed.", true))
             }
@@ -157,7 +159,7 @@ class MainActivity : Activity() {
             }
             4 -> {
                 val memory = Debug.MemoryInfo(); Debug.getMemoryInfo(memory)
-                content.addView(label("OwlWhisp Mobile 0.1.1\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
+                content.addView(label("OwlWhisp Mobile 0.1.2\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
                     "\nUI PSS: " + memory.totalPss / 1024 + " MiB\nModel process: " + if (app.client.loaded) "running" else "unloaded"))
                 content.addView(label(app.lastMetrics, true))
                 button("Refresh") { showTab(4) }
@@ -191,7 +193,11 @@ class MainActivity : Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED && hasWindowFocus()) startRecording()
     }
-    override fun onResume() { super.onResume(); app.refresh() }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent); setIntent(intent)
+        if (intent.hasExtra("tab")) showTab(intent.getIntExtra("tab", 0).coerceIn(0, 4))
+    }
+    override fun onResume() { super.onResume(); app.refresh(); if (currentTab == 1) showTab(1) }
     override fun onPause() { app.cancel(this); if (!app.busy) app.unload(); super.onPause() }
     override fun onDestroy() { app.removeObserver(observer); super.onDestroy() }
     override fun onSaveInstanceState(outState: Bundle) {
