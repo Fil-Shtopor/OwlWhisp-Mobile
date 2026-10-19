@@ -19,12 +19,12 @@ class AudioRecorder(private val context: Context, private val onLimit: () -> Uni
     init { require(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
 
     fun start() {
-        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) throw SecurityException("Микрофон не разрешён")
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) throw SecurityException("Microphone permission is required")
         val minimum = AudioRecord.getMinBufferSize(16_000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-        require(minimum > 0) { "Микрофон не поддерживает запись" }
+        require(minimum > 0) { "Microphone recording is not supported" }
         val record = AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, 16_000,
             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(minimum, 8192))
-        if (record.state != AudioRecord.STATE_INITIALIZED) { record.release(); error("Микрофон недоступен") }
+        if (record.state != AudioRecord.STATE_INITIALIZED) { record.release(); error("Microphone unavailable") }
         audio = record
         running.set(true)
         try { record.startRecording() } catch (failure: Exception) {
@@ -36,14 +36,14 @@ class AudioRecorder(private val context: Context, private val onLimit: () -> Uni
                 while (running.get() && count < samples.size) {
                     val size = record.read(buffer, 0, minOf(buffer.size, samples.size - count))
                     if (size < 0) {
-                        if (running.get()) error("Запись микрофона прервана")
+                        if (running.get()) error("Microphone recording interrupted")
                         break
                     }
                     for (i in 0 until size) samples[count++] = buffer[i] / 32768f
                 }
                 if (running.getAndSet(false)) onLimit()
             } catch (failure: Exception) {
-                if (running.getAndSet(false)) onError(failure.message ?: "Ошибка микрофона")
+                if (running.getAndSet(false)) onError(failure.message ?: "Microphone error")
             } finally { record.release() }
         }, "owlwhisp-microphone").also { it.start() }
     }
@@ -57,7 +57,7 @@ class AudioRecorder(private val context: Context, private val onLimit: () -> Uni
     fun finish(): FloatArray {
         requestStop()
         thread?.join(2000)
-        check(thread?.isAlive != true) { "Микрофон не завершил запись" }
+        check(thread?.isAlive != true) { "Microphone did not stop recording" }
         return samples.copyOf(count)
     }
 }

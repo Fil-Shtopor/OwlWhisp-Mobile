@@ -46,11 +46,11 @@ public enum ModelError: LocalizedError {
     case invalidManifest, invalidDownload, corruptModel, missingModel, emptyRecording
     public var errorDescription: String? {
         switch self {
-        case .invalidManifest: return "Не удалось прочитать описание модели."
-        case .invalidDownload: return "Ошибка загрузки модели. Попробуйте ещё раз."
-        case .corruptModel: return "Файлы модели повреждены. Загрузите модель заново."
-        case .missingModel: return "Сначала загрузите модель."
-        case .emptyRecording: return "Запись пуста."
+        case .invalidManifest: return "Could not read the model manifest."
+        case .invalidDownload: return "Model download failed. Try again."
+        case .corruptModel: return "Model files are corrupt. Download the model again."
+        case .missingModel: return "Download a model first."
+        case .emptyRecording: return "The recording is empty."
         }
     }
 }

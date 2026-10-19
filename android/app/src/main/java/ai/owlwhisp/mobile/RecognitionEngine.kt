@@ -15,7 +15,7 @@ class RecognitionEngine : Closeable {
     private var activeId: String? = null
 
     fun transcribe(repository: ModelRepository, samples: FloatArray): String {
-        require(samples.size <= 16_000 * 60) { "Запись длиннее 60 секунд" }
+        require(samples.size <= 16_000 * 60) { "Recording exceeds 60 seconds" }
         require(samples.all { it.isFinite() }) { "Invalid audio" }
         if (samples.isEmpty() || sqrt(samples.sumOf { it.toDouble() * it } / samples.size) < 0.0005) return ""
         if (activeId != repository.id) { close(); activeId = repository.id }

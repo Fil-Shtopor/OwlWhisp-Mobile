@@ -16,7 +16,7 @@ class SmokeInstrumentation : Instrumentation() {
         val report = Bundle()
         val client = InferenceClient(targetContext)
         try {
-            check(Benchmark.wordErrorRate("Один, два! Ёж.", "один два еж") == 0.0)
+            check(Benchmark.wordErrorRate("\u041e\u0434\u0438\u043d, \u0434\u0432\u0430! \u0401\u0436.", "\u043e\u0434\u0438\u043d \u0434\u0432\u0430 \u0435\u0436") == 0.0)
             check(Benchmark.wordErrorRate("one two three", "one three") == 1.0 / 3.0)
             val ids = arguments.getString("models", "parakeet-tdt-0.6b-v3")!!.split(",")
             val results = JSONArray()

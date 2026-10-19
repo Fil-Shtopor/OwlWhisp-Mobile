@@ -32,14 +32,14 @@ class InferenceClient(private val context: Context) {
         }
         connection = service
         check(context.bindService(Intent(context, InferenceService::class.java), service, Context.BIND_AUTO_CREATE))
-        check(ready.await(30, TimeUnit.SECONDS) && endpoint != null) { "Не удалось запустить движок" }
+        check(ready.await(30, TimeUnit.SECONDS) && endpoint != null) { "Could not start the recognition engine" }
     }
     private fun request(what: Int, data: Bundle = Bundle()): Bundle {
         val latch = CountDownLatch(1); result = null; pending = latch
         try {
             checkNotNull(endpoint).send(Message.obtain(null, what).apply { this.data = data; replyTo = replies })
-            check(latch.await(10, TimeUnit.MINUTES)) { "Превышено время распознавания" }
-            return result ?: error("Движок остановлен. Попробуйте более лёгкую модель.")
+            check(latch.await(10, TimeUnit.MINUTES)) { "Transcription timed out" }
+            return result ?: error("The engine stopped. Try a smaller model.")
         } finally { pending = null }
     }
     fun transcribe(repository: ModelRepository, samples: FloatArray): InferenceResult {

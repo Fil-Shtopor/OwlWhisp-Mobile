@@ -9,8 +9,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.1.1"
+    CURRENT_PROJECT_VERSION: "2"
 targets:
   OwlWhispMobile:
     type: application
@@ -36,7 +36,7 @@ targets:
       path: Generated/Info.plist
       properties:
         CFBundleDisplayName: OwlWhisp
-        NSMicrophoneUsageDescription: Микрофон нужен для локального голосового ввода. Аудио остаётся на устройстве.
+        NSMicrophoneUsageDescription: Microphone access is needed for on-device voice input. Audio stays on your device.
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

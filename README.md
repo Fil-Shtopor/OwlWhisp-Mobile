@@ -3,12 +3,12 @@
 Offline voice input for Android and iPhone, in a separate repository from
 [OwlWhisp Desktop](https://github.com/Fil-Shtopor/OwlWhisp).
 
-[Download Android 0.1.0](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.0)
+[Download Android 0.1.1](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.1)
 
 The default model is **ordinary NVIDIA Parakeet TDT 0.6B v3 INT8**, with 25 languages,
 including Russian. Models download separately from the APK.
 
-## Android 0.1.0
+## Android 0.1.1
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
 - OwlWhisp's owl icon and dark palette.
@@ -92,3 +92,5 @@ docs/: architecture and mobile research moved from desktop.
 No sibling checkout or desktop Rust app code is required. Application code: Apache-2.0.
 Model weights and bundled dependencies have their own licenses; see
 [third-party notices](shared/THIRD_PARTY_NOTICES.md) and shared/licenses/.
+
+All authored repository and interface text is English; see [contribution guidance](CONTRIBUTING.md). Non-English ASR reference data uses JSON Unicode escapes.

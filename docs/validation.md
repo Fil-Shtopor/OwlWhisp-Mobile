@@ -51,7 +51,7 @@ Measured Phonon release rows:
 | fleurs_en_2 | 8.7% | 47.60 s | 6.35 | 330 MiB |
 | fleurs_en_3 | 9.1% | 50.27 s | 6.35 | 330 MiB |
 
-WER uses lowercased Unicode letters/numbers, punctuation separation and ё=е. It is not the
+WER uses lowercased Unicode letters/numbers, punctuation separation and U+0451 is folded to U+0435. It is not the
 full Whisper/leaderboard normalizer. Six short samples cannot establish overall accuracy.
 
 See validation/android-release-ui.json and validation/android-release-idle-memory.txt.

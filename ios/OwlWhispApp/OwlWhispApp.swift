@@ -32,89 +32,89 @@ private struct ContentView: View {
                             Image("OwlWhisp").resizable().scaledToFit().frame(width: 52, height: 52)
                             Text("OwlWhisp").font(.largeTitle.bold())
                         }
-                        Text("Голос остаётся на устройстве").foregroundStyle(.secondary)
+                        Text("Your voice stays on your device").foregroundStyle(.secondary)
                         Text(model.status).accessibilityAddTraits(.updatesFrequently)
                         Button(action: model.toggleRecording) {
-                            Label(model.phase == .recording ? "Остановить и распознать" : "Начать диктовку",
+                            Label(model.phase == .recording ? "Stop and transcribe" : "Start dictation",
                                   systemImage: model.phase == .recording ? "stop.fill" : "mic.fill")
                                 .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
                         }.buttonStyle(.borderedProminent).disabled(!model.ready || (model.phase != .idle && model.phase != .recording))
                         TextEditor(text: $model.text).frame(minHeight: 200).padding(8)
                             .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
                         HStack {
-                            Button("Скопировать") { UIPasteboard.general.string = model.text }
-                            ShareLink(item: model.text) { Label("Поделиться", systemImage: "square.and.arrow.up") }
-                            Button("Очистить") { model.text = "" }
+                            Button("Copy") { UIPasteboard.general.string = model.text }
+                            ShareLink(item: model.text) { Label("Share", systemImage: "square.and.arrow.up") }
+                            Button("Clear") { model.text = "" }
                         }.disabled(model.text.isEmpty)
-                        Text("До 60 секунд на запись. Аудио не отправляется на сервер.").font(.footnote).foregroundStyle(.secondary)
+                        Text("Up to 60 seconds per recording. Audio is not uploaded.").font(.footnote).foregroundStyle(.secondary)
                     }.padding(20)
-                }.background(background).navigationTitle("Диктовка").navigationBarTitleDisplayMode(.inline)
-            }.tabItem { Label("Диктовка", systemImage: "mic") }
+                }.background(background).navigationTitle("Dictate").navigationBarTitleDisplayMode(.inline)
+            }.tabItem { Label("Dictate", systemImage: "mic") }
             NavigationStack {
                 Form {
-                    Section("Память") {
-                        Text("Модель освобождается после каждой записи. Постоянного фонового процесса нет.")
-                        Button("Выгрузить модель") { model.unload() }.disabled(model.phase != .idle)
+                    Section("Memory") {
+                        Text("The model is released after every recording. There is no persistent background process.")
+                        Button("Unload model") { model.unload() }.disabled(model.phase != .idle)
                     }
-                    Section("Ввод текста") {
-                        Text("На iPhone диктовка доступна в основном приложении через копирование и меню «Поделиться». Клавиатурное расширение — следующий этап.")
+                    Section("Text input") {
+                        Text("On iPhone, dictate in the main app, then copy or share the text. A keyboard extension is planned.")
                     }
-                    Section("Микрофон") {
-                        Button("Открыть настройки iOS") {
+                    Section("Microphone") {
+                        Button("Open iOS settings") {
                             if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                         }
                     }
-                }.navigationTitle("Настройки")
-            }.tabItem { Label("Настройки", systemImage: "gearshape") }
+                }.navigationTitle("Settings")
+            }.tabItem { Label("Settings", systemImage: "gearshape") }
             NavigationStack {
                 Form {
                     Section("Parakeet TDT 0.6B v3") {
-                        Text("Обычный Parakeet INT8 · 25 языков, включая русский · 639 МиБ")
-                        Text(model.ready ? "На устройстве" : "Не загружена")
+                        Text("Ordinary Parakeet INT8 · 25 languages, including Russian · 639 MiB")
+                        Text(model.ready ? "On device" : "Not downloaded")
                         if model.phase == .downloading { ProgressView(value: model.progress) }
-                        Button(model.ready ? "Проверить / восстановить" : "Загрузить") { model.install() }.disabled(model.phase != .idle)
-                        if model.ready { Button("Удалить модель", role: .destructive) { model.deleteModel() }.disabled(model.phase != .idle) }
+                        Button(model.ready ? "Verify / repair" : "Download") { model.install() }.disabled(model.phase != .idle)
+                        if model.ready { Button("Remove model", role: .destructive) { model.deleteModel() }.disabled(model.phase != .idle) }
                         Text("NVIDIA · CC-BY-4.0; ONNX export Fangjun Kuang. sherpa-onnx Apache-2.0, ONNX Runtime MIT.").font(.footnote)
                     }
-                    Section("Лёгкие модели") {
-                        Text("В Android 0.1.0 подключены Redux, Whistle и Phonon-2. Перенос их отдельных движков в iOS ещё не завершён.")
-                        Text("Redux: 25 языков. Whistle: EN/DE/FR/ES/IT/NL/PL. Phonon-2: английский.").font(.footnote)
+                    Section("Small models") {
+                        Text("Android supports Redux, Whistle and Phonon-2. Their separate runtimes have not yet been ported to iOS.")
+                        Text("Redux: 25 languages. Whistle: EN/DE/FR/ES/IT/NL/PL. Phonon-2: English.").font(.footnote)
                     }
-                }.navigationTitle("Модели")
-            }.tabItem { Label("Модели", systemImage: "square.stack.3d.up") }
+                }.navigationTitle("Models")
+            }.tabItem { Label("Models", systemImage: "square.stack.3d.up") }
             NavigationStack {
                 Form {
-                    Section("Локальный бенчмарк") {
-                        Text("6 коротких записей FLEURS EN/RU. Холодная загрузка модели для каждого образца. WER и RTF: меньше — лучше.")
-                        Button("Запустить Parakeet") { model.runBenchmark() }.disabled(!model.ready || model.phase != .idle)
+                    Section("Local benchmark") {
+                        Text("Six short FLEURS EN/RU clips. Each clip uses a cold model load. Lower WER and RTF are better.")
+                        Button("Run Parakeet") { model.runBenchmark() }.disabled(!model.ready || model.phase != .idle)
                         Text(model.status)
                     }
                     if !model.benchmarkReport.isEmpty {
-                        Section("JSON-отчёт") {
-                            ShareLink(item: model.benchmarkReport) { Label("Поделиться", systemImage: "square.and.arrow.up") }
+                        Section("JSON report") {
+                            ShareLink(item: model.benchmarkReport) { Label("Share", systemImage: "square.and.arrow.up") }
                             Text(model.benchmarkReport).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
                         }
                     }
-                    Section { Text("FLEURS, Conneau et al., 2022 · google/fleurs · CC-BY-4.0. Небольшой набор для сравнения на одном устройстве.").font(.footnote) }
-                }.navigationTitle("Бенчмарк")
-            }.tabItem { Label("Бенчмарк", systemImage: "chart.bar") }
+                    Section { Text("FLEURS, Conneau et al., 2022 · google/fleurs · CC-BY-4.0. A small comparison set for the same device.").font(.footnote) }
+                }.navigationTitle("Benchmark")
+            }.tabItem { Label("Benchmark", systemImage: "chart.bar") }
             NavigationStack {
                 Form {
-                    Section("OwlWhisp Mobile 0.1.0") {
+                    Section("OwlWhisp Mobile 0.1.1") {
                         Text(UIDevice.current.model + " · iOS " + UIDevice.current.systemVersion)
-                        Text("CPU · 2 потока · sherpa-onnx 1.13.6")
-                        Text(model.ready ? "Parakeet загружен на диск" : "Нет модели на диске")
-                        Text("После обработки модель не остаётся в памяти.")
+                        Text("CPU · 2 threads · sherpa-onnx 1.13.6")
+                        Text(model.ready ? "Parakeet downloaded to device" : "No model on device")
+                        Text("The model is released from memory after processing.")
                     }
-                    Section("Приватность") {
-                        Text("Распознавание локальное. Сеть используется для загрузки модели. Аудио и распознанный текст не отправляются на сервер.")
+                    Section("Privacy") {
+                        Text("Recognition runs locally. The network is used to download the model. Audio and transcripts are not uploaded.")
                     }
-                    Section("Лицензии") {
-                        Text("Приложение Apache-2.0. Веса Parakeet CC-BY-4.0. Исходники и полный список лицензий доступны в репозитории.")
+                    Section("Licenses") {
+                        Text("App: Apache-2.0. Parakeet weights: CC-BY-4.0. Source code and full license notices are in the repository.")
                         Link("OwlWhisp-Mobile", destination: URL(string: "https://github.com/Fil-Shtopor/OwlWhisp-Mobile")!)
                     }
-                }.navigationTitle("Диагностика")
-            }.tabItem { Label("Диагностика", systemImage: "stethoscope") }
+                }.navigationTitle("Diagnostics")
+            }.tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
     }
 }

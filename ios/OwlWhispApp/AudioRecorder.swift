@@ -19,7 +19,7 @@ final class AudioRecorder {
               let outputFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
               let converter = AVAudioConverter(from: format, to: outputFormat) else {
             try? session.setActive(false)
-            throw NSError(domain: "OwlWhisp", code: 1, userInfo: [NSLocalizedDescriptionKey: "Микрофон недоступен."])
+            throw NSError(domain: "OwlWhisp", code: 1, userInfo: [NSLocalizedDescriptionKey: "Microphone unavailable."])
         }
         samples = []
         samples.reserveCapacity(maximum)

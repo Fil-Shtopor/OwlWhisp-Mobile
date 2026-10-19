@@ -7,7 +7,7 @@ import OwlWhispCore
 final class TranscriptionModel: ObservableObject {
     enum Phase { case idle, downloading, recording, processing }
     @Published var phase: Phase = .idle
-    @Published var status = "Загрузите модель, чтобы начать"
+    @Published var status = "Download a model to get started"
     @Published var progress = 0.0
     @Published var ready = false
     @Published var text = ""
@@ -30,13 +30,13 @@ final class TranscriptionModel: ObservableObject {
     func refresh() async {
         guard let store, phase == .idle else { return }
         ready = await store.present()
-        status = ready ? "Готово · всё обрабатывается на устройстве" : "Нужна модель Parakeet · 639 МиБ"
+        status = ready ? "Ready · all processing stays on device" : "Parakeet model required · 639 MiB"
     }
 
     func install() {
         guard let store, phase == .idle else { return }
         phase = .downloading
-        status = "Загрузка модели…"
+        status = "Downloading model…"
         let token = UUID()
         generation = token
         job = Task {
@@ -45,11 +45,11 @@ final class TranscriptionModel: ObservableObject {
                     Task { @MainActor [weak self] in
                         guard self?.generation == token else { return }
                         self?.progress = value
-                        self?.status = "Загрузка модели: " + String(Int(value * 100)) + "%"
+                        self?.status = "Downloading model: " + String(Int(value * 100)) + "%"
                     }
                 }
                 guard generation == token else { return }
-                ready = true; phase = .idle; status = "Модель проверена. Можно диктовать."
+                ready = true; phase = .idle; status = "Model verified. Ready to dictate."
             } catch {
                 guard generation == token else { return }
                 phase = .idle; status = error.localizedDescription
@@ -65,13 +65,13 @@ final class TranscriptionModel: ObservableObject {
         AVAudioSession.sharedInstance().requestRecordPermission { allowed in
             Task { @MainActor [weak self] in
                 guard let self, self.generation == token, UIApplication.shared.applicationState == .active else { return }
-                guard allowed else { self.status = "Разрешите микрофон в настройках iPhone."; return }
+                guard allowed else { self.status = "Allow microphone access in iPhone settings."; return }
                 do {
                     try self.recorder.start(
                         onLimit: { [weak self] in self?.finishRecording() },
                         onError: { [weak self] message in self?.cancel(); self?.status = message })
                     self.phase = .recording
-                    self.status = "Слушаю… До 60 секунд"
+                    self.status = "Listening… Up to 60 seconds"
                 } catch { self.status = error.localizedDescription }
             }
         }
@@ -81,14 +81,14 @@ final class TranscriptionModel: ObservableObject {
         guard phase == .recording, let store else { return }
         let audio = recorder.stop()
         phase = .processing
-        status = "Распознаю на устройстве…"
+        status = "Transcribing on device…"
         let token = generation
         job = Task {
             do {
                 let result = try await recognizer.transcribe(store: store, samples: audio)
                 guard generation == token else { return }
                 if !result.isEmpty { text += (text.isEmpty ? "" : " ") + result }
-                status = result.isEmpty ? "Речь не обнаружена" : "Готово"
+                status = result.isEmpty ? "No speech detected" : "Ready"
             } catch {
                 guard generation == token else { return }
                 status = error.localizedDescription
@@ -107,7 +107,7 @@ final class TranscriptionModel: ObservableObject {
 
     func unload() {
         guard phase == .idle else { return }
-        status = "Модель уже выгружена из памяти"
+        status = "The model is already unloaded from memory"
     }
 
     func deleteModel() {
@@ -116,7 +116,7 @@ final class TranscriptionModel: ObservableObject {
         job = Task {
             do {
                 try await store.delete()
-                ready = false; status = "Модель удалена с устройства"
+                ready = false; status = "Model removed from device"
             } catch { status = error.localizedDescription }
             phase = .idle
         }
@@ -138,7 +138,7 @@ final class TranscriptionModel: ObservableObject {
                           let url = Bundle.main.url(forResource: name, withExtension: nil, subdirectory: "benchmark")
                     else { throw ModelError.invalidManifest }
                     guard generation == token else { return }
-                    status = "Бенчмарк: " + name
+                    status = "Benchmark: " + name
                     let audio = try AVAudioFile(forReading: url)
                     guard let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: AVAudioFrameCount(audio.length)) else { throw ModelError.invalidDownload }
                     try audio.read(into: buffer)
@@ -152,13 +152,13 @@ final class TranscriptionModel: ObservableObject {
                                  "audio_s": Double(samples.count) / 16000, "elapsed_s": elapsed,
                                  "rtf": elapsed / (Double(samples.count) / 16000)])
                 }
-                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.0",
+                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.1",
                     "device": UIDevice.current.model, "os": UIDevice.current.systemVersion,
                     "mode": "cold: verification + load + decode; 2 CPU threads", "rows": rows]
                 let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
                 guard generation == token else { return }
                 benchmarkReport = String(decoding: data, as: UTF8.self)
-                status = "Бенчмарк завершён"
+                status = "Benchmark complete"
             } catch {
                 guard generation == token else { return }
                 status = error.localizedDescription
@@ -169,6 +169,6 @@ final class TranscriptionModel: ObservableObject {
 
     func backgrounded() {
         if phase == .idle { generation = UUID() }
-        if phase == .recording || phase == .processing { cancel(); status = "Запись отменена" }
+        if phase == .recording || phase == .processing { cancel(); status = "Recording cancelled" }
     }
 }

@@ -43,7 +43,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
     fun present() = files.all { File(directory, it.name).let { file -> file.isFile && file.length() == it.bytes } }
     fun verify() {
         for (entry in files) require(valid(File(directory, entry.name), entry)) {
-            "Файлы модели повреждены. Загрузите модель заново."
+            "Model files are corrupt. Download the model again."
         }
     }
     fun delete() {
@@ -52,7 +52,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
         directory.delete()
     }
     fun install(onProgress: (Long, Long) -> Unit) {
-        require(supported) { "Whistle доступен на ARM64-устройствах" }
+        require(supported) { "Whistle requires an ARM64 device" }
         check(directory.mkdirs() || directory.isDirectory)
         var completed = 0L
         for (spec in downloads) {
@@ -83,7 +83,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
                 val seen = mutableSetOf<String>()
                 while (true) {
                     var read = 0
-                    while (read < 512) { val n = input.read(header, read, 512 - read); require(n >= 0) { "Неполный TAR" }; read += n }
+                    while (read < 512) { val n = input.read(header, read, 512 - read); require(n >= 0) { "Incomplete TAR archive" }; read += n }
                     if (header.all { it == 0.toByte() }) break
                     fun field(start: Int, length: Int) = String(header, start, length, Charsets.US_ASCII).trim('\u0000', ' ')
                     val name = field(0, 100)
@@ -98,7 +98,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
                             var left = size; val buffer = ByteArray(256 * 1024)
                             while (left > 0) { val n = input.read(buffer, 0, minOf(left, buffer.size.toLong()).toInt()); require(n > 0); out.write(buffer, 0, n); left -= n }
                         }
-                        require(valid(partial, entry)) { "Распакованная модель не прошла SHA-256" }
+                        require(valid(partial, entry)) { "Extracted model failed SHA-256 verification" }
                     } else {
                         var left = size
                         while (left > 0) { val n = input.skip(left); require(n > 0); left -= n }
@@ -106,7 +106,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
                     var padding = (512 - size % 512) % 512
                     while (padding > 0) { val n = input.skip(padding); require(n > 0); padding -= n }
                 }
-                require(seen == expected.keys) { "Неполный архив модели" }
+                require(seen == expected.keys) { "Incomplete model archive" }
             }
             for ((part, dest) in staged) java.nio.file.Files.move(part.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
         } finally { staged.forEach { it.first.delete() } }
@@ -150,7 +150,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
                     }
                 }
             }
-            require(valid(partial, entry)) { "Модель не прошла проверку SHA-256" }
+            require(valid(partial, entry)) { "Model failed SHA-256 verification" }
             java.nio.file.Files.move(partial.toPath(), destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
         } finally { connection.disconnect(); partial.delete() }
     }

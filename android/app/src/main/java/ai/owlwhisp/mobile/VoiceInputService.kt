@@ -18,7 +18,7 @@ class VoiceInputService : InputMethodService() {
     private val observer: (AppState) -> Unit = { state ->
         status?.text = state.message
         microphone?.isEnabled = app.model.present() && (state.phase in setOf(Phase.IDLE, Phase.ERROR) || (state.phase == Phase.RECORDING && app.isOwner(this)))
-        microphone?.text = if (state.phase == Phase.RECORDING && app.isOwner(this)) "Остановить и вставить" else "Диктовать"
+        microphone?.text = if (state.phase == Phase.RECORDING && app.isOwner(this)) "Stop and insert" else "Dictate"
     }
     override fun onCreate() { super.onCreate(); app.observe(observer) }
     override fun onEvaluateFullscreenMode(): Boolean = false
@@ -46,14 +46,14 @@ class VoiceInputService : InputMethodService() {
         }
         root.addView(microphone)
         root.addView(Button(this).apply {
-            text = "Вернуться к клавиатуре"
+            text = "Return to keyboard"
             setOnClickListener {
                 app.cancel(this@VoiceInputService)
                 if (!switchToPreviousInputMethod()) getSystemService(InputMethodManager::class.java).showInputMethodPicker()
             }
         })
         root.addView(Button(this).apply {
-            text = "Настроить модель и микрофон"
+            text = "Set up model and microphone"
             setOnClickListener {
                 app.cancel(this@VoiceInputService)
                 startActivity(Intent(this@VoiceInputService, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

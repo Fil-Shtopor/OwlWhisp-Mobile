@@ -3,7 +3,7 @@ import Foundation
 public enum BenchmarkMetrics {
     public static func wordErrorRate(reference: String, hypothesis: String) -> Double {
         func words(_ text: String) -> [String] {
-            text.lowercased().replacingOccurrences(of: "ё", with: "е")
+            text.lowercased().replacingOccurrences(of: "\u{0451}", with: "\u{0435}")
                 .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
         }
         let expected = words(reference), actual = words(hypothesis)
