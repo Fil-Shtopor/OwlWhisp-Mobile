@@ -33,7 +33,7 @@ class SmokeInstrumentation : Instrumentation() {
                 val wer = Benchmark.wordErrorRate(expected, result.text)
                 check(result.text.isNotBlank() && wer <= 0.45) { id + " WER " + wer + ": " + result.text }
                 results.put(JSONObject().put("model", id).put("transcript", result.text).put("reference", expected)
-                    .put("wer", wer).put("elapsed_ms", result.elapsedMs).put("inference_pss_kib", result.pssKiB))
+                    .put("wer", wer).put("elapsed_ms", result.elapsedMs).put("post_decode_pss_kib", result.pssKiB).put("sampled_peak_pss_kib", result.peakPssKiB))
                 client.unload(); check(!client.loaded)
                 val file = File(repository.directory, repository.files.last().name)
                 val handle = java.io.RandomAccessFile(file, "rw")

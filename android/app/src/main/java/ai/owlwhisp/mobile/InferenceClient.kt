@@ -9,7 +9,7 @@ import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-data class InferenceResult(val text: String, val elapsedMs: Long, val pssKiB: Int)
+data class InferenceResult(val text: String, val elapsedMs: Long, val pssKiB: Int, val peakPssKiB: Int = 0)
 
 /** Called only on the application's serial worker. Binder callbacks run on main. */
 class InferenceClient(private val context: Context) {
@@ -51,7 +51,7 @@ class InferenceClient(private val context: Context) {
             connect()
             val response = request(1, Bundle().apply { putString("audio", file.name); putString("model", repository.id) })
             response.getString("error")?.let { error(it) }
-            return InferenceResult(response.getString("text").orEmpty(), response.getLong("elapsed_ms"), response.getInt("pss_kib"))
+            return InferenceResult(response.getString("text").orEmpty(), response.getLong("elapsed_ms"), response.getInt("pss_kib"), response.getInt("peak_pss_kib"))
         } catch (failure: Throwable) { unload(); throw failure } finally { file.delete() }
     }
     fun unload() {

@@ -64,7 +64,7 @@ object Benchmark {
             rows.put(JSONObject().put("file", fixture.getString("file")).put("reference", fixture.getString("transcript"))
                 .put("transcript", result.text).put("wer", wordErrorRate(fixture.getString("transcript"), result.text))
                 .put("audio_s", duration).put("elapsed_ms", result.elapsedMs).put("rtf", result.elapsedMs / 1000.0 / duration)
-                .put("inference_pss_kib", result.pssKiB))
+                .put("post_decode_pss_kib", result.pssKiB).put("sampled_peak_pss_kib", result.peakPssKiB))
             client.unload()
         }
         check(rows.length() > 0) { "Нет образцов для языков этой модели" }
@@ -72,6 +72,7 @@ object Benchmark {
             .put("app_version", "0.1.0").put("device", android.os.Build.MODEL).put("sdk", android.os.Build.VERSION.SDK_INT)
             .put("abi", android.os.Build.SUPPORTED_ABIS.first()).put("created_at_ms", System.currentTimeMillis())
             .put("mode", "cold: hash verification + load + decode; 2 CPU threads; process unloaded after each clip")
+            .put("memory_measurement", "Inference-process PSS sampled every 100 ms; sampled maximum, not a guaranteed allocation peak")
             .put("normalization", "Unicode letters and numbers, lowercase, punctuation removed, ё=е")
             .put("rows", rows).toString(2)
         File(context.filesDir, "benchmark.json").writeText(report)

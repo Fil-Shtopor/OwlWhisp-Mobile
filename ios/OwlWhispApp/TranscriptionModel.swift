@@ -107,7 +107,7 @@ final class TranscriptionModel: ObservableObject {
 
     func unload() {
         guard phase == .idle else { return }
-        status = "?????? ??? ????????? ?? ??????"
+        status = "Модель уже выгружена из памяти"
     }
 
     func deleteModel() {
@@ -116,7 +116,7 @@ final class TranscriptionModel: ObservableObject {
         job = Task {
             do {
                 try await store.delete()
-                ready = false; status = "?????? ??????? ? ??????????"
+                ready = false; status = "Модель удалена с устройства"
             } catch { status = error.localizedDescription }
             phase = .idle
         }
@@ -138,7 +138,7 @@ final class TranscriptionModel: ObservableObject {
                           let url = Bundle.main.url(forResource: name, withExtension: nil, subdirectory: "benchmark")
                     else { throw ModelError.invalidManifest }
                     guard generation == token else { return }
-                    status = "????????: " + name
+                    status = "Бенчмарк: " + name
                     let audio = try AVAudioFile(forReading: url)
                     guard let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: AVAudioFrameCount(audio.length)) else { throw ModelError.invalidDownload }
                     try audio.read(into: buffer)
@@ -158,7 +158,7 @@ final class TranscriptionModel: ObservableObject {
                 let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
                 guard generation == token else { return }
                 benchmarkReport = String(decoding: data, as: UTF8.self)
-                status = "???????? ????????"
+                status = "Бенчмарк завершён"
             } catch {
                 guard generation == token else { return }
                 status = error.localizedDescription

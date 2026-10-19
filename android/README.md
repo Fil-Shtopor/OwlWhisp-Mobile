@@ -1,19 +1,20 @@
 # Android
 
-Native Kotlin prototype for Android 9/API 28+, ARM64 and x86_64; compile/target API 36.
-Uses standard Android views and the official sherpa-onnx AAR.
+Kotlin/JNI application for API 28+, compile/target 36. ARM64 and x86_64 APK.
 
-Run python scripts/build_android.py from the repository root. Gradle 8.14.2, its distribution
-checksum and the native runtime digest are pinned.
+Run python scripts/build_android.py from the repository root with JDK 17+, Rust and the SDK/NDK
+installed. Release signing is documented in ../docs/releasing.md.
 
-Open the app, download ordinary Parakeet TDT 0.6B v3 and grant microphone permission.
-Enable OwlWhisp in keyboard settings and select it with the system input-method picker.
-Dictate, then press Stop to insert text. The panel can return to the previous keyboard.
-Editor changes and hiding the panel cancel the session.
+The five sections mirror desktop: Dictate, Settings, Models, Benchmark, Diagnostics. Models:
+ordinary Parakeet, Redux, Whistle (ARM64 only) and English Phonon-2. Weights download separately
+with size/SHA-256 checks. The private :inference process is released by default after every job.
+The Parakeet keep-ready option expires after 30 or 300 seconds.
 
-Recording is bounded to 60 seconds and held in memory. Losing foreground capture cancels it.
-Inference uses CPU, two threads; the model session releases after each job. Cancelling inference
-discards the result but does not interrupt the active native decode call.
+Voice input is an auxiliary IME: enable it in system keyboard settings, grant microphone access
+in the app and switch to OwlWhisp with Android's keyboard picker. Samsung's own microphone
+provider selection is controlled by Samsung.
 
-Debug builds include a test-only instrumentation component and FLEURS fixture. Release builds
-exclude both. Release signing/publication is not configured.
+Capture is limited to 60 seconds. Leaving the capture surface cancels delivery. PCM moves to
+inference through a private temporary file that is deleted after processing; no audio is uploaded.
+
+See ../docs/validation.md for emulator checks, known limits and raw benchmark results.

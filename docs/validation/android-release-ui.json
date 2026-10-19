@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "serial": "emulator-5580",
+  "model": "phonon-2",
+  "checks": [
+    "five tabs",
+    "verified archive download and extraction",
+    "three-clip signed-release benchmark",
+    "inference process exit",
+    "microphone foreground cancellation",
+    "voice IME enable/show/start/cancel/stop on silence"
+  ],
+  "note": "UIAutomator dumps exclude the IME window; IME recording was additionally checked with screenshot, observed-button taps and shared app status."
+}

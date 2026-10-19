@@ -1,0 +1,73 @@
+{
+  "model": "parakeet-tdt-0.6b-v3",
+  "model_version": "csukuangfj-2bda32ec",
+  "app_version": "0.1.0",
+  "device": "sdk_gphone64_x86_64",
+  "sdk": 34,
+  "abi": "x86_64",
+  "created_at_ms": 1792399123138,
+  "mode": "cold: hash verification + load + decode; 2 CPU threads; process unloaded after each clip",
+  "normalization": "Unicode letters and numbers, lowercase, punctuation removed, ё=е",
+  "rows": [
+    {
+      "file": "fleurs_en_1.wav",
+      "reference": "There are many beaches, due to Auckland's straddling of two harbours. The most popular ones are in three areas.",
+      "transcript": "There are many beaches due to offland straddling of two harbors. The most popular ones are in three areas.",
+      "wer": 0.15,
+      "audio_s": 6,
+      "elapsed_ms": 30452,
+      "rtf": 5.075333333333334,
+      "inference_pss_kib": 768414
+    },
+    {
+      "file": "fleurs_en_2.wav",
+      "reference": "After seeing the horrors and atrocities of war during World War I, nations desired to avoid such a situation again in the future.",
+      "transcript": "After seeing the horrors and atrocities of war during World War One, nations desire to avoid such a situation again in the future.",
+      "wer": 0.08695652173913043,
+      "audio_s": 7.5,
+      "elapsed_ms": 13357,
+      "rtf": 1.7809333333333333,
+      "inference_pss_kib": 778488
+    },
+    {
+      "file": "fleurs_en_3.wav",
+      "reference": "Scientists think that ocelots follow and find animals to eat (prey) by smell, sniffing for where they've been on the ground.",
+      "transcript": "Scientists think that ocelots follow and find animals to eat, prey by smell, sniffing from where they've been on the ground.",
+      "wer": 0.045454545454545456,
+      "audio_s": 7.92,
+      "elapsed_ms": 14239,
+      "rtf": 1.7978535353535354,
+      "inference_pss_kib": 781096
+    },
+    {
+      "file": "fleurs_ru_1.wav",
+      "reference": "Основной религией в Молдавии является православное христианство.",
+      "transcript": "Основной религией в Молдавии является православное христианство.",
+      "wer": 0,
+      "audio_s": 5.64,
+      "elapsed_ms": 12569,
+      "rtf": 2.2285460992907806,
+      "inference_pss_kib": 765957
+    },
+    {
+      "file": "fleurs_ru_2.wav",
+      "reference": "Они по-прежнему стараются определить, насколько большим было столкновение и как пострадает Земля.",
+      "transcript": "Они по-прежнему стараются определить, насколько большим было столкновение и как пострадает земля.",
+      "wer": 0,
+      "audio_s": 6.96,
+      "elapsed_ms": 13471,
+      "rtf": 1.9354885057471265,
+      "inference_pss_kib": 774476
+    },
+    {
+      "file": "fleurs_ru_3.wav",
+      "reference": "Арабы также принесли в этот регион ислам, особенно он укоренился на Коморах и Майотте.",
+      "transcript": "Арабы также принесли в этот регион ислам, особенно он укоренился на коморах и майотте.",
+      "wer": 0,
+      "audio_s": 7.5,
+      "elapsed_ms": 13487,
+      "rtf": 1.7982666666666667,
+      "inference_pss_kib": 778329
+    }
+  ]
+}

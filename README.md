@@ -1,68 +1,94 @@
 # OwlWhisp Mobile
 
-Private, on-device speech-to-text for Android and iPhone. The first prototype uses ordinary
-NVIDIA Parakeet TDT 0.6B v3, quantized to INT8, with all 25 languages including Russian.
-The model download is approximately 639 MiB and is separate from the application.
+Offline voice input for Android and iPhone, in a separate repository from
+[OwlWhisp Desktop](https://github.com/Fil-Shtopor/OwlWhisp).
 
-## Current implementation
+[Download Android 0.1.0](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.0)
 
-- Android: Kotlin application, microphone recording, pinned model downloads with SHA-256
-  verification, offline transcription, editable text and clipboard copy.
-- Android voice input method: switch from your regular keyboard, dictate and insert text into
-  the active editor. Samsung Keyboard's own microphone provider is not replaced.
-- iOS: SwiftUI application sources, microphone capture/resampling, verified model downloads,
-  local transcription, copy and share. Build and device validation require macOS/Xcode.
-- Audio stays in memory, limited to 60 seconds. Recognition happens after recording stops.
-  Streaming partial text is not implemented.
-- Both platforms use sherpa-onnx 1.13.6. No cloud speech service is used.
+The default model is **ordinary NVIDIA Parakeet TDT 0.6B v3 INT8**, with 25 languages,
+including Russian. Models download separately from the APK.
 
-## Build Android
+## Android 0.1.0
 
-Install JDK 17+, Android SDK platform 36 and build-tools 35.0.0, then run from the root:
+- The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
+- OwlWhisp's owl icon and dark palette.
+- Microphone capture, editable transcript, clipboard copy and a voice input method (IME).
+- Verified downloads, model selection, repair and deletion.
+- Local FLEURS EN/RU benchmark, WER, cold latency, RTF, sampled maximum PSS and JSON sharing.
+- Disposable inference process: immediate unloading by default. Parakeet can optionally stay
+  ready for 30 seconds or 5 minutes. Memory pressure and leaving the app release idle sessions.
+- No account, cloud transcription, startup service or persistent background microphone.
+
+| Model | Languages | Download | Runtime |
+|---|---|---:|---|
+| Parakeet TDT 0.6B v3 INT8 | 25, including Russian | 639 MiB | sherpa-onnx |
+| Parakeet Redux | 25, including Russian | 171 MiB | voxrt |
+| Whistle | EN, DE, FR, ES, IT, NL, PL | 16 MiB | Needle; ARM64 only |
+| Phonon-2 | English | 178 MiB | phonon-2-c; 244 MiB installed |
+
+Parakeet, Redux and Phonon passed real recognition checks on an Android API 34 x86_64
+emulator. Whistle's ARM64 adapter compiles, but needs validation on a physical ARM64 phone.
+A smaller download does not imply the same amount of RAM during recognition.
+
+Enable OwlWhisp in Android's keyboard settings and switch to it through the system keyboard
+picker. Samsung Keyboard's microphone button depends on Samsung's supported providers; the
+app provides its own voice IME. Android 9/API 28+; ARM64 phones and x86_64 emulators.
+
+## iOS
+
+SwiftUI app with the same five sections, branding, ordinary Parakeet, foreground microphone
+capture/resampling, verified downloads, local benchmark, copy and share. Swift tests and an
+iOS simulator build pass in GitHub Actions. It has not been tested on a physical iPhone.
+Redux, Whistle and Phonon adapters and a keyboard extension are not yet implemented on iOS.
+There is no signed IPA/App Store release.
+
+## Build
+
+Android requires JDK 17+, Rust 1.89+, Android SDK platform 36, build-tools 35.0.0,
+NDK 27.1.12297006 and CMake 3.22.1. Set ANDROID_HOME, then:
 
     python scripts/build_android.py
 
-The script fetches the checksum-pinned runtime and invokes the Gradle wrapper. Output:
+Dependencies and model manifests use immutable revisions and checksums. The script downloads
+the pinned AAR/Needle library, checks out the two native engines and builds Redux for both
+Android ABIs. Output: android/app/build/outputs/apk/debug/app-debug.apk.
 
-    android/app/build/outputs/apk/debug/app-debug.apk
+For the signed Windows release, prepare dependencies first and run:
 
-Open the installed app, download Parakeet and grant microphone permission before enabling the
-voice input method in system settings. Keep the app open during download. Background/resumable
-downloads are future work.
+    powershell -ExecutionPolicy Bypass -File scripts/build_release.ps1
 
-## Build iOS
-
-On a Mac with Xcode and XcodeGen:
+See [release signing](docs/releasing.md). iOS requires macOS, Xcode and XcodeGen:
 
     cd ios
     swift test
     xcodegen generate
     xcodebuild -project OwlWhispMobile.xcodeproj -scheme OwlWhispMobile -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 
-For a physical iPhone, open the generated project and choose your signing team. Deployment
-target: iOS 16.0. This prototype records in the main app and exposes text through copy/share.
-A keyboard extension is not implemented.
+Choose your Apple signing team to install on a physical iPhone.
 
-## Verification
+## Test and limits
 
     python -m unittest discover -s tests -v
     python scripts/prepare.py --model-dir .cache/models/parakeet-tdt-0.6b-v3
     python scripts/android-smoke.py --serial emulator-5580
+    python scripts/android-release-smoke.py --serial emulator-5580 --fresh
 
-The last command needs an already running test emulator, adb on PATH and a built debug APK.
-It checks actual native recognition of attributed FLEURS speech, file integrity, silence and
-recording limits. Personal-phone serials are rejected. See docs/validation.md for results.
+The last script removes only this app on the explicitly selected disposable emulator, installs
+the signed APK, downloads Phonon and exercises benchmark, microphone cancellation and IME.
+Supply --adb with the SDK adb path when it is not on PATH.
 
-## Layout
+[Validation results](docs/validation.md) distinguish emulator measurements from phone performance.
+Keep the app open while downloading or benchmarking. Downloads are not resumable. Recording
+is limited to 60 seconds; recognition starts when recording stops. Android passes temporary
+PCM through private cache files and deletes it after processing or at the next main-app start.
+iOS holds recording audio in memory. There is no streaming partial transcript.
 
-android/: Kotlin app and voice input method. ios/: Swift package, SwiftUI app and XcodeGen.
-shared/: common model manifest and runtime lock. scripts/: builds and smoke checks.
-tests/: integrity tests and attributed audio. docs/: architecture and transferred research.
+## Layout and license
 
-The desktop project remains https://github.com/Fil-Shtopor/OwlWhisp. This repository builds
-without a sibling checkout. See docs/shared-core.md for the current reuse boundary.
+android/: native Kotlin/JNI app and voice IME. ios/: SwiftUI app and Swift package.
+shared/: manifests, runtime pins, benchmark fixtures and licenses. scripts/: build/test tools.
+docs/: architecture and mobile research moved from desktop.
 
-## License
-
-Apache-2.0 application code. Parakeet weights: CC-BY-4.0.
-See shared/THIRD_PARTY_NOTICES.md and tests/fixtures/ATTRIBUTION.md.
+No sibling checkout or desktop Rust app code is required. Application code: Apache-2.0.
+Model weights and bundled dependencies have their own licenses; see
+[third-party notices](shared/THIRD_PARTY_NOTICES.md) and shared/licenses/.

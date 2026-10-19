@@ -7,6 +7,8 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 /** Private, disposable process: unloading also reclaims native allocator pools and global engines. */
 class InferenceService : Service() {
@@ -37,7 +39,11 @@ class InferenceService : Service() {
                     require(samples.all { it.isFinite() })
                     val repository = ModelRepository(this@InferenceService, data.getString("model") ?: "")
                     val started = System.nanoTime()
-                    val text = engine.transcribe(repository, samples)
+                    val peak = AtomicLong(0)
+                    val sampler = Executors.newSingleThreadScheduledExecutor()
+                    val sampling = sampler.scheduleAtFixedRate({ peak.accumulateAndGet(Debug.getPss()) { a, b -> maxOf(a, b) } }, 0, 100, TimeUnit.MILLISECONDS)
+                    val text = try { engine.transcribe(repository, samples) } finally { sampling.cancel(false); sampler.shutdown() }
+                    response.putInt("peak_pss_kib", peak.get().toInt())
                     val memory = Debug.MemoryInfo(); Debug.getMemoryInfo(memory)
                     response.putString("text", text)
                     response.putLong("elapsed_ms", (System.nanoTime() - started) / 1_000_000)

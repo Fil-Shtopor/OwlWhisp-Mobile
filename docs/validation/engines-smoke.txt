@@ -1,0 +1,5 @@
+INSTRUMENTATION_RESULT: benchmark=All compatible clips transcribed; JSON report saved
+INSTRUMENTATION_RESULT: integrity=SHA-256 verified; same-length corruption rejected for every model
+INSTRUMENTATION_RESULT: lifecycle=Private inference process unloaded; silence and length limit checked
+INSTRUMENTATION_RESULT: results=[{"model":"parakeet-tdt-0.6b-v3","transcript":"Основной религией в Молдавии является православное христианство.","reference":"Основной религией в Молдавии является православное христианство.","wer":0,"elapsed_ms":14610,"inference_pss_kib":766153},{"model":"parakeet-redux","transcript":"Основной религией в Молдавии является православное христианство.","reference":"Основной религией в Молдавии является православное христианство.","wer":0,"elapsed_ms":11847,"inference_pss_kib":43572},{"model":"phonon-2","transcript":"There are many beaches due to Auckland straddling of two harbors. The most popular ones are in three areas.","reference":"There are many beaches, due to Auckland's straddling of two harbours. The most popular ones are in three areas.","wer":0.1,"elapsed_ms":35444,"inference_pss_kib":19119}]
+INSTRUMENTATION_CODE: -1

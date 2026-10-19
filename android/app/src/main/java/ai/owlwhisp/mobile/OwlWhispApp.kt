@@ -128,7 +128,7 @@ class OwlWhispApp : Application() {
                 main.post {
                     if (generation == token) {
                         owner = null; deliver = null
-                        lastMetrics = "Последний запуск: " + result.elapsedMs + " мс · PSS движка " + result.pssKiB / 1024 + " МиБ"
+                        lastMetrics = "Последний запуск: " + result.elapsedMs + " мс · PSS max " + result.peakPssKiB / 1024 + " МиБ"
                         publish(AppState(Phase.IDLE, if (result.text.isBlank()) "Речь не обнаружена" else "Готово"))
                         callback?.invoke(result.text)
                         if (warmSeconds > 0) main.postDelayed(idleRelease, warmSeconds * 1000L)

@@ -1,51 +1,57 @@
 # Mobile architecture
 
-Android and iOS live in OwlWhisp-Mobile, independently of desktop releases. This supersedes
-the earlier single-repository proposal.
+OwlWhisp-Mobile is a standalone repository. Native Android and iOS hosts share model metadata,
+checksums, benchmark recordings, attribution and visual identity. The historical desktop audit
+in research/desktop-audit-2026-10-19.md predates the user's separate-repository decision.
 
-## First prototype: ordinary Parakeet
+## Android
 
-The baseline is ordinary NVIDIA Parakeet TDT 0.6B v3 in the sherpa-onnx INT8 export, preserving
-25 languages. It is not Redux or Phonon. Both apps consume the same manifest under shared/models,
-with revision-pinned URLs, sizes and SHA-256.
+The Kotlin host owns permissions, capture, editor identity, model storage, settings and UI.
+One serial application worker coordinates downloads and jobs. Recording is bounded to 60 s at
+16 kHz mono; its owner and generation prevent a late result from reaching a different editor.
 
-Android uses native Kotlin, AudioRecord and InputMethodService with the official sherpa AAR.
-iOS uses SwiftUI, AVAudioEngine and the official sherpa Swift package, with copy/share delivery.
-Both use the same native engine version and model.
+A private bound service in :inference owns model sessions. The app passes bounded float PCM
+through a private cache file, not through Binder's limited message buffer. Files are removed in
+finally blocks; the main process cleans interrupted jobs on startup. Models use noBackupFilesDir;
+audio, model weights and settings are excluded from backup.
 
-This build proof reuses the engine choice, base model, branding and test audio from OwlWhisp.
-It does not copy desktop Rust app code. The proposed shared Rust SDK is a future extraction;
-see shared-core.md.
+The service uses sherpa-onnx for ordinary Parakeet; JNI calls voxrt for Redux, phonon-2-c for
+Phonon and the pinned Needle C API for Whistle. Whistle is ARM64-only. Its telemetry opt-outs
+NEEDLE_TELEMETRY=0 and DO_NOT_TRACK=1 are set before the first runtime call.
 
-## Session and storage boundaries
+Immediate unloading is the default. Closing the separate process also frees global native
+pools and Whistle's process-global model, for which no unload API exists. Ordinary Parakeet
+can remain loaded for 30 or 300 seconds; there is a manual unload action and memory-pressure
+cleanup. Native inference is synchronous within the worker; cancellation discards stale output.
 
-Native hosts own permissions, microphone, text delivery, UI and suspension. Inference runs off
-the UI thread. Audio stays in memory, is limited to 60 seconds and is cancelled when its editor
-or foreground session is lost. Cancellation invalidates pending results; native decoding may
-finish before resources release. The model session is scoped to each transcription.
+Downloads are bounded by expected size, staged to .part, hashed and promoted only after
+verification. Phonon's pinned tar.gz is streamed to flat, expected files; each unpacked file
+has its own size/hash pin. Installed files are verified again before constructing a session.
 
-Download files are verified before replacing installed copies, and the complete model is verified
-before native initialization. Model storage is private and excluded from backups. Downloads need
-the foreground; resuming partial/background downloads is not implemented.
+Benchmark runs only fixtures whose language the selected model supports. Each clip uses a cold
+session. Elapsed time includes integrity checking, loading and decoding. PSS is sampled every
+100 ms in the inference process: the sampled maximum is distinct from post-decode PSS, and
+does not guarantee capture of every short allocation spike. Results are local JSON.
 
-Android inserts into the editor session that started recording and can return to the previous
-IME. Samsung Keyboard's own microphone provider is not replaced.
+The voice IME uses Android's ordinary input-method selection. Its editor-generation guard
+prevents committing text into an editor that replaced the original. Samsung's provider button
+is outside the app's control.
 
-iOS records in its main application. Keyboard extensions have microphone, memory and host-app
-communication constraints requiring a separate feasibility proof.
+## iOS
 
-## Subsequent work
+SwiftUI owns the same five tabs; AVAudioEngine/AVAudioConverter produce bounded mono 16 kHz
+audio. Actors isolate downloads and recognition. The ordinary Parakeet session is local to
+each recognition call, then released. Background/interruption events stop capture and invalidate
+delivery. Permission callbacks also check the active application state.
 
-- Compile/validate on an iPhone and test interruptions.
-- Verify IME insertion/return on the target Samsung/One UI version.
-- Add model selection and measure alternative lightweight runtimes.
-- Extract reusable Rust SDK policy only where this benefits the native hosts.
-- Add streaming and accelerators after establishing phone latency/memory baselines.
+The iOS baseline includes model installation/deletion and the six-clip Parakeet benchmark.
+It does not yet embed Redux/Phonon/Needle or implement a keyboard extension. Apple keyboard
+extensions cannot directly access the microphone, so Android's IME design cannot be copied
+unchanged. Simulator compilation is CI-validated; real-device validation remains outstanding.
 
-## References
+## Reuse boundary
 
-- https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3
-- https://k2-fsa.github.io/sherpa/onnx/android/index.html
-- https://k2-fsa.github.io/sherpa/onnx/ios/index.html
-- https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/CustomKeyboard.html
-- https://developer.apple.com/app-store/review/guidelines/#extensions
+Desktop platform automation, tray/hotkeys, path conventions, update services and GUI code stay
+in the desktop repository. The mobile app reuses branding, model identity and attributed test
+audio. Native runtime dependencies are pinned upstream packages, not sibling-path dependencies.
+A shared policy SDK may be extracted later if it reduces duplication between the hosts.

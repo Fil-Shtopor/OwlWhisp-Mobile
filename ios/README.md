@@ -1,16 +1,17 @@
 # iOS
 
-SwiftUI prototype with foreground recording, conversion to 16 kHz mono, verified Parakeet
-downloads, CPU inference, editable text, clipboard copy and system sharing.
+SwiftUI app and OwlWhispCore Swift package. Minimum iOS 16.0.
 
-Requirements: macOS, Xcode, XcodeGen, iOS 16+. The exact sherpa-onnx 1.13.6 Swift package uses
-upstream checksum-pinned XCFrameworks.
+The app has OwlWhisp branding and the same five sections as desktop, ordinary Parakeet INT8,
+verified downloads/deletion, microphone capture, copy/share and a six-clip FLEURS benchmark.
+Model sessions are scoped to one job. Background/interruption invalidates capture and delivery.
 
-Run swift test and xcodegen generate here, then build OwlWhispMobile.xcodeproj, scheme
-OwlWhispMobile. Choose a signing team for device builds. project.yml is the source of truth;
-the generated project and Info.plist are ignored.
+On macOS install XcodeGen, then run swift test, xcodegen generate and xcodebuild as described
+in ../README.md. GitHub Actions runs package tests and an unsigned simulator build.
 
-The app cancels capture on interruption/backgrounding. Audio is kept in memory for at most
-60 seconds. The recognizer releases after each transcription. A keyboard extension is not
-implemented. Xcode compilation and iPhone validation must run on macOS; this implementation
-session runs on Windows.
+No physical-iPhone validation or signed IPA is provided. Redux, Whistle and Phonon native
+adapters and a keyboard extension remain Android-only/future work for iOS. Apple custom keyboard
+extensions cannot directly access the microphone; dictation currently runs in the main app.
+
+Weights are CC-BY-4.0 and download separately. Audio is bounded to 60 seconds and retained in
+memory during a job. The app sends neither audio nor transcripts to a transcription service.

@@ -62,15 +62,15 @@ class MainActivity : Activity() {
         root.addView(label("Голос остаётся на устройстве", true))
         val navigation = LinearLayout(this)
         tabs.forEachIndexed { index, name ->
-            navigation.addView(Button(this).apply { text = name; isAllCaps = false; textSize = 13f; setTextColor(Palette.accent); setOnClickListener { showTab(index) } })
+            navigation.addView(Button(this).apply { text = name; isAllCaps = false; textSize = 11f; minWidth = 0; minimumWidth = 0; setPadding(dp(2), 0, dp(2), 0); setTextColor(Palette.accent); setOnClickListener { showTab(index) } }, LinearLayout.LayoutParams(0, dp(60), 1f))
         }
-        root.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(navigation) })
         status = label("").apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         root.addView(status)
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100 }
         root.addView(progress)
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { isFillViewport = true; addView(content) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(navigation, LinearLayout.LayoutParams(-1, dp(60)))
         setContentView(root); showTab(currentTab); app.observe(observer)
     }
     private fun label(value: String, dim: Boolean = false) = TextView(this).apply {
@@ -145,7 +145,7 @@ class MainActivity : Activity() {
                     val rows = json.getJSONArray("rows")
                     for (i in 0 until rows.length()) {
                         val row = rows.getJSONObject(i)
-                        content.addView(label(row.getString("file") + "\n" + String.format(Locale.ROOT, "WER %.1f%% · RTF %.2f · %.2f c", row.getDouble("wer") * 100, row.getDouble("rtf"), row.getLong("elapsed_ms") / 1000.0)))
+                        content.addView(label(row.getString("file") + "\n" + String.format(Locale.ROOT, "WER %.1f%% · RTF %.2f · %.2f c", row.getDouble("wer") * 100, row.getDouble("rtf"), row.getLong("elapsed_ms") / 1000.0) + " · PSS max " + row.optInt("sampled_peak_pss_kib") / 1024 + " МиБ"))
                         content.addView(label(row.getString("transcript"), true))
                     }
                     button("Поделиться JSON-отчётом") {

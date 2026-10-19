@@ -1,0 +1,357 @@
+[
+  {
+    "crate": "cfg-if",
+    "version": "1.0.5",
+    "file": "cfg-if-1.0.5-LICENSE-APACHE"
+  },
+  {
+    "crate": "cfg-if",
+    "version": "1.0.5",
+    "file": "cfg-if-1.0.5-LICENSE-MIT"
+  },
+  {
+    "crate": "crossbeam-deque",
+    "version": "0.8.8",
+    "file": "crossbeam-deque-0.8.8-LICENSE-APACHE"
+  },
+  {
+    "crate": "crossbeam-deque",
+    "version": "0.8.8",
+    "file": "crossbeam-deque-0.8.8-LICENSE-MIT"
+  },
+  {
+    "crate": "crossbeam-epoch",
+    "version": "0.9.21",
+    "file": "crossbeam-epoch-0.9.21-LICENSE-APACHE"
+  },
+  {
+    "crate": "crossbeam-epoch",
+    "version": "0.9.21",
+    "file": "crossbeam-epoch-0.9.21-LICENSE-MIT"
+  },
+  {
+    "crate": "crossbeam-utils",
+    "version": "0.8.23",
+    "file": "crossbeam-utils-0.8.23-LICENSE-APACHE"
+  },
+  {
+    "crate": "crossbeam-utils",
+    "version": "0.8.23",
+    "file": "crossbeam-utils-0.8.23-LICENSE-MIT"
+  },
+  {
+    "crate": "either",
+    "version": "1.18.0",
+    "file": "either-1.18.0-LICENSE-APACHE"
+  },
+  {
+    "crate": "either",
+    "version": "1.18.0",
+    "file": "either-1.18.0-LICENSE-MIT"
+  },
+  {
+    "crate": "half",
+    "version": "2.7.1",
+    "file": "half-2.7.1-LICENSE-APACHE"
+  },
+  {
+    "crate": "half",
+    "version": "2.7.1",
+    "file": "half-2.7.1-LICENSE-MIT"
+  },
+  {
+    "crate": "itoa",
+    "version": "1.0.18",
+    "file": "itoa-1.0.18-LICENSE-APACHE"
+  },
+  {
+    "crate": "itoa",
+    "version": "1.0.18",
+    "file": "itoa-1.0.18-LICENSE-MIT"
+  },
+  {
+    "crate": "libc",
+    "version": "0.2.190",
+    "file": "libc-0.2.190-LICENSE-APACHE"
+  },
+  {
+    "crate": "libc",
+    "version": "0.2.190",
+    "file": "libc-0.2.190-LICENSE-MIT"
+  },
+  {
+    "crate": "libm",
+    "version": "0.2.16",
+    "file": "libm-0.2.16-LICENSE.txt"
+  },
+  {
+    "crate": "memchr",
+    "version": "2.8.3",
+    "file": "memchr-2.8.3-COPYING"
+  },
+  {
+    "crate": "memchr",
+    "version": "2.8.3",
+    "file": "memchr-2.8.3-LICENSE-MIT"
+  },
+  {
+    "crate": "memchr",
+    "version": "2.8.3",
+    "file": "memchr-2.8.3-UNLICENSE"
+  },
+  {
+    "crate": "memmap2",
+    "version": "0.9.11",
+    "file": "memmap2-0.9.11-LICENSE-APACHE"
+  },
+  {
+    "crate": "memmap2",
+    "version": "0.9.11",
+    "file": "memmap2-0.9.11-LICENSE-MIT"
+  },
+  {
+    "crate": "num-complex",
+    "version": "0.4.6",
+    "file": "num-complex-0.4.6-LICENSE-APACHE"
+  },
+  {
+    "crate": "num-complex",
+    "version": "0.4.6",
+    "file": "num-complex-0.4.6-LICENSE-MIT"
+  },
+  {
+    "crate": "num-integer",
+    "version": "0.1.47",
+    "file": "num-integer-0.1.47-LICENSE-APACHE"
+  },
+  {
+    "crate": "num-integer",
+    "version": "0.1.47",
+    "file": "num-integer-0.1.47-LICENSE-MIT"
+  },
+  {
+    "crate": "num-traits",
+    "version": "0.2.19",
+    "file": "num-traits-0.2.19-LICENSE-APACHE"
+  },
+  {
+    "crate": "num-traits",
+    "version": "0.2.19",
+    "file": "num-traits-0.2.19-LICENSE-MIT"
+  },
+  {
+    "crate": "primal-check",
+    "version": "0.3.4",
+    "file": "primal-check-0.3.4-LICENSE-APACHE"
+  },
+  {
+    "crate": "primal-check",
+    "version": "0.3.4",
+    "file": "primal-check-0.3.4-LICENSE-MIT"
+  },
+  {
+    "crate": "proc-macro2",
+    "version": "1.0.107",
+    "file": "proc-macro2-1.0.107-LICENSE-APACHE"
+  },
+  {
+    "crate": "proc-macro2",
+    "version": "1.0.107",
+    "file": "proc-macro2-1.0.107-LICENSE-MIT"
+  },
+  {
+    "crate": "quote",
+    "version": "1.0.47",
+    "file": "quote-1.0.47-LICENSE-APACHE"
+  },
+  {
+    "crate": "quote",
+    "version": "1.0.47",
+    "file": "quote-1.0.47-LICENSE-MIT"
+  },
+  {
+    "crate": "rayon",
+    "version": "1.12.0",
+    "file": "rayon-1.12.0-LICENSE-APACHE"
+  },
+  {
+    "crate": "rayon",
+    "version": "1.12.0",
+    "file": "rayon-1.12.0-LICENSE-MIT"
+  },
+  {
+    "crate": "rayon-core",
+    "version": "1.13.0",
+    "file": "rayon-core-1.13.0-LICENSE-APACHE"
+  },
+  {
+    "crate": "rayon-core",
+    "version": "1.13.0",
+    "file": "rayon-core-1.13.0-LICENSE-MIT"
+  },
+  {
+    "crate": "rustfft",
+    "version": "6.4.1",
+    "file": "rustfft-6.4.1-LICENSE-APACHE"
+  },
+  {
+    "crate": "rustfft",
+    "version": "6.4.1",
+    "file": "rustfft-6.4.1-LICENSE-MIT"
+  },
+  {
+    "crate": "safetensors",
+    "version": "0.6.2",
+    "file": "safetensors-0.6.2-LICENSE"
+  },
+  {
+    "crate": "serde",
+    "version": "1.0.229",
+    "file": "serde-1.0.229-LICENSE-APACHE"
+  },
+  {
+    "crate": "serde",
+    "version": "1.0.229",
+    "file": "serde-1.0.229-LICENSE-MIT"
+  },
+  {
+    "crate": "serde_core",
+    "version": "1.0.229",
+    "file": "serde_core-1.0.229-LICENSE-APACHE"
+  },
+  {
+    "crate": "serde_core",
+    "version": "1.0.229",
+    "file": "serde_core-1.0.229-LICENSE-MIT"
+  },
+  {
+    "crate": "serde_derive",
+    "version": "1.0.229",
+    "file": "serde_derive-1.0.229-LICENSE-APACHE"
+  },
+  {
+    "crate": "serde_derive",
+    "version": "1.0.229",
+    "file": "serde_derive-1.0.229-LICENSE-MIT"
+  },
+  {
+    "crate": "serde_json",
+    "version": "1.0.151",
+    "file": "serde_json-1.0.151-LICENSE-APACHE"
+  },
+  {
+    "crate": "serde_json",
+    "version": "1.0.151",
+    "file": "serde_json-1.0.151-LICENSE-MIT"
+  },
+  {
+    "crate": "strength_reduce",
+    "version": "0.2.4",
+    "file": "strength_reduce-0.2.4-LICENSE-APACHE"
+  },
+  {
+    "crate": "strength_reduce",
+    "version": "0.2.4",
+    "file": "strength_reduce-0.2.4-LICENSE-MIT"
+  },
+  {
+    "crate": "syn",
+    "version": "2.0.119",
+    "file": "syn-2.0.119-LICENSE-APACHE"
+  },
+  {
+    "crate": "syn",
+    "version": "2.0.119",
+    "file": "syn-2.0.119-LICENSE-MIT"
+  },
+  {
+    "crate": "syn",
+    "version": "3.0.6",
+    "file": "syn-3.0.6-LICENSE-APACHE"
+  },
+  {
+    "crate": "syn",
+    "version": "3.0.6",
+    "file": "syn-3.0.6-LICENSE-MIT"
+  },
+  {
+    "crate": "thiserror",
+    "version": "2.0.21",
+    "file": "thiserror-2.0.21-LICENSE-APACHE"
+  },
+  {
+    "crate": "thiserror",
+    "version": "2.0.21",
+    "file": "thiserror-2.0.21-LICENSE-MIT"
+  },
+  {
+    "crate": "thiserror-impl",
+    "version": "2.0.21",
+    "file": "thiserror-impl-2.0.21-LICENSE-APACHE"
+  },
+  {
+    "crate": "thiserror-impl",
+    "version": "2.0.21",
+    "file": "thiserror-impl-2.0.21-LICENSE-MIT"
+  },
+  {
+    "crate": "transpose",
+    "version": "0.2.3",
+    "file": "transpose-0.2.3-LICENSE-APACHE"
+  },
+  {
+    "crate": "transpose",
+    "version": "0.2.3",
+    "file": "transpose-0.2.3-LICENSE-MIT"
+  },
+  {
+    "crate": "unicode-ident",
+    "version": "1.0.26",
+    "file": "unicode-ident-1.0.26-LICENSE-APACHE"
+  },
+  {
+    "crate": "unicode-ident",
+    "version": "1.0.26",
+    "file": "unicode-ident-1.0.26-LICENSE-MIT"
+  },
+  {
+    "crate": "unicode-ident",
+    "version": "1.0.26",
+    "file": "unicode-ident-1.0.26-LICENSE-UNICODE"
+  },
+  {
+    "crate": "zerocopy",
+    "version": "0.8.59",
+    "file": "zerocopy-0.8.59-LICENSE-APACHE"
+  },
+  {
+    "crate": "zerocopy",
+    "version": "0.8.59",
+    "file": "zerocopy-0.8.59-LICENSE-BSD"
+  },
+  {
+    "crate": "zerocopy",
+    "version": "0.8.59",
+    "file": "zerocopy-0.8.59-LICENSE-MIT"
+  },
+  {
+    "crate": "zerocopy-derive",
+    "version": "0.8.59",
+    "file": "zerocopy-derive-0.8.59-LICENSE-APACHE"
+  },
+  {
+    "crate": "zerocopy-derive",
+    "version": "0.8.59",
+    "file": "zerocopy-derive-0.8.59-LICENSE-BSD"
+  },
+  {
+    "crate": "zerocopy-derive",
+    "version": "0.8.59",
+    "file": "zerocopy-derive-0.8.59-LICENSE-MIT"
+  },
+  {
+    "crate": "zmij",
+    "version": "1.0.23",
+    "file": "zmij-1.0.23-LICENSE-MIT"
+  }
+]
