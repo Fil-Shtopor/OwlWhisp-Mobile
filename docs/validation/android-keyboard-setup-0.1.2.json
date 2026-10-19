@@ -9,7 +9,8 @@
     "enabled with visible system switch and confirmations",
     "selected from system picker",
     "setup status refreshed",
-    "IME shown in an editable text field"
+    "IME shown in an editable text field",
+    "Return to keyboard button switched back to Gboard (observed screenshot and system state)"
   ],
   "adb_ime_enable_or_set_used": false,
   "samsung_device_validated": false

@@ -10,7 +10,7 @@ ordinary Parakeet, Redux, Whistle (ARM64 only) and English Phonon-2. Weights dow
 with size/SHA-256 checks. The private :inference process is released by default after every job.
 The Parakeet keep-ready option expires after 30 or 300 seconds.
 
-Voice input is a regular selectable IME. Open **Set up voice keyboard** in Dictate or Settings.
+Installing an APK does not automatically enable its keyboard. Voice input on main is a regular selectable IME. Open **Set up voice keyboard** in Dictate or Settings.
 The setup screen checks model availability, microphone permission, keyboard enablement and
 selection. Enable OwlWhisp in system keyboard settings, then choose it with the system picker.
 On Samsung: Settings > General management > Keyboard list and default. Enable the keyboard

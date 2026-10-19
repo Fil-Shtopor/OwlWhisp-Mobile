@@ -1,6 +1,6 @@
 Unreleased: Android voice keyboard setup and reproducible iOS packages.
 
-- Register OwlWhisp as a regular selectable keyboard rather than an auxiliary Russian-only voice subtype.
+- Replace the auxiliary ru_RU input subtype with a regular, language-neutral selectable keyboard.
 - Add Voice keyboard setup with model readiness, microphone permission, keyboard enablement/selection status, system settings and picker buttons, and a test field.
 - Open the same setup screen from Android's IME settings shortcut and the voice input panel.
 - Disable voice capture when microphone permission is missing and provide setup guidance.
