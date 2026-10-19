@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "whistle",
+  "version": "741118687e1f008f06d1351a402a731274789790",
+  "common": [
+    {
+      "path": "whistle.cact",
+      "url": "https://huggingface.co/Cactus-Compute/whistle/resolve/741118687e1f008f06d1351a402a731274789790/whistle.cact",
+      "bytes": 16919407,
+      "sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb"
+    }
+  ],
+  "artifacts": [
+    {
+      "target": "cpu_int8",
+      "files": []
+    }
+  ],
+  "name": "Whistle",
+  "engine": "whistle",
+  "languages": [
+    "en",
+    "de",
+    "fr",
+    "es",
+    "it",
+    "nl",
+    "pl"
+  ],
+  "license": "Apache-2.0",
+  "attribution": "Cactus Compute Whistle (Apache-2.0)"
+}

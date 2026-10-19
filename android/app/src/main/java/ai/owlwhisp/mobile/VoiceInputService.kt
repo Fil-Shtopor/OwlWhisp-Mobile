@@ -27,9 +27,9 @@ class VoiceInputService : InputMethodService() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
-            setBackgroundColor(Color.rgb(245, 244, 239))
+            setBackgroundColor(Palette.bg)
         }
-        status = TextView(this).apply { textSize = 16f }
+        status = TextView(this).apply { textSize = 16f; setTextColor(Palette.text) }
         root.addView(status)
         microphone = Button(this).apply {
             minHeight = (72 * resources.displayMetrics.density).toInt()

@@ -1,0 +1,14 @@
+{
+  "needle_header": {
+    "path": "needle.h",
+    "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/3391a1007e7db31d2fe5c69c734bbe93a9c1ce79/android-arm64/needle.h",
+    "bytes": 4528,
+    "sha256": "a27dac4b3239eead91d124b7f7dbce5495c13019903fd817b68c16d39b055a99"
+  },
+  "needle_arm64": {
+    "path": "libneedle.a",
+    "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/3391a1007e7db31d2fe5c69c734bbe93a9c1ce79/android-arm64/libneedle.a",
+    "bytes": 2175244,
+    "sha256": "f862e2d58fbf4229c58678c492f73721d64ae4fdee023b91db155f04decae3f1"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "id": "parakeet-redux",
+  "version": "2bf128600aac4b16946f7ed8372e56117fe5e23b",
+  "common": [
+    {
+      "path": "config.json",
+      "url": "https://huggingface.co/moondream/parakeet-redux/resolve/2bf128600aac4b16946f7ed8372e56117fe5e23b/config.json",
+      "bytes": 12988,
+      "sha256": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e"
+    },
+    {
+      "path": "ternary.json",
+      "url": "https://huggingface.co/moondream/parakeet-redux/resolve/2bf128600aac4b16946f7ed8372e56117fe5e23b/ternary.json",
+      "bytes": 57970,
+      "sha256": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+    },
+    {
+      "path": "tokenizer.json",
+      "url": "https://huggingface.co/moondream/parakeet-redux/resolve/2bf128600aac4b16946f7ed8372e56117fe5e23b/tokenizer.json",
+      "bytes": 1159960,
+      "sha256": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91"
+    },
+    {
+      "path": "model.safetensors",
+      "url": "https://huggingface.co/moondream/parakeet-redux/resolve/2bf128600aac4b16946f7ed8372e56117fe5e23b/model.safetensors",
+      "bytes": 177774490,
+      "sha256": "78ec25733ee0d0c1586d1346fc86db9d0c2e436e3a8ab1d32a82d1bb8f848d21"
+    }
+  ],
+  "artifacts": [
+    {
+      "target": "cpu_int8",
+      "files": []
+    }
+  ],
+  "name": "Parakeet Redux",
+  "engine": "redux",
+  "languages": [
+    "en",
+    "es",
+    "fr",
+    "de",
+    "it",
+    "pt",
+    "ru",
+    "uk",
+    "pl",
+    "nl",
+    "cs",
+    "sk",
+    "sl",
+    "hr",
+    "bg",
+    "ro",
+    "hu",
+    "el",
+    "da",
+    "sv",
+    "fi",
+    "et",
+    "lv",
+    "lt",
+    "mt"
+  ],
+  "license": "CC-BY-4.0",
+  "attribution": "Moondream Parakeet Redux based on NVIDIA Parakeet (CC-BY-4.0)"
+}

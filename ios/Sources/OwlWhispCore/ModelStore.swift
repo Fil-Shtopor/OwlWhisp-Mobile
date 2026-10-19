@@ -18,6 +18,13 @@ public actor ModelStore {
         }
     }
 
+    public func delete() throws {
+        for file in manifest.files {
+            let url = directory.appendingPathComponent(file.path)
+            if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+        }
+    }
+
     public func verify() throws {
         for file in manifest.files {
             guard try valid(directory.appendingPathComponent(file.path), spec: file) else { throw ModelError.corruptModel }

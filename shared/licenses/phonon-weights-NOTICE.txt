@@ -1,0 +1,72 @@
+Phonon-2 weights in the phonon-2-c format
+
+These files are the weights of FermionResearch/Phonon-2 re-encoded for the
+phonon-2-c inference engine (https://github.com/eschmidbauer/phonon-2-c). They
+are distributed under the Creative Commons Attribution 4.0 International
+licence (CC-BY-4.0), the licence of both models they derive from. See
+LICENSE-WEIGHTS-CC-BY-4.0.txt. The code that rebuilds them is licensed
+separately, see CODE below.
+
+================================================================================
+ATTRIBUTION
+================================================================================
+
+Phonon-2, (c) 2026 Fermion Research, CC-BY-4.0
+
+    https://huggingface.co/FermionResearch/Phonon-2
+
+derived from NVIDIA's Parakeet TDT 0.6B v3, (c) NVIDIA Corporation, CC-BY-4.0
+
+    https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3
+    https://creativecommons.org/licenses/by/4.0/
+
+Fermion Research's changes to the NVIDIA model: the encoder's linear weights
+were re-trained and quantised to a five-value alphabet; the remaining
+parameters were quantised to 6-bit integer tables. The FastConformer encoder,
+the TDT decoder, the tokenizer and the feature-extractor configuration are
+NVIDIA's.
+
+================================================================================
+CHANGES MADE HERE
+================================================================================
+
+Relative to the Phonon-2 release (phonon-2.bps.tar.zst, container
+model.fermion, sha256
+4b6bfa3a12cc3c4e0a54f2ab3ec4ca7a842b09e5c7ecfc8e7ca0ac6cc8c11468), the
+weights were re-encoded by phonon-2-c's convert_weights.py into its flat
+phonon-2-c-weights-v1 format:
+
+  - the five-value encoder linears are kept as five values (2-bit sign and
+    1-bit lo/hi planes with the fp32 lo/hi per output column);
+  - the 6-bit integer tables are widened to int8 with fp32 scales (exact);
+  - fp16 tensors are widened to fp32 (exact);
+  - the depthwise convolution's BatchNorm is folded into its weights and bias,
+    computed in double precision and stored as fp32 (the one rounding step).
+
+No value was re-trained or re-quantised.
+
+================================================================================
+TRAINING DATA (from Phonon-2's NOTICE)
+================================================================================
+
+Training audio includes CHiME-6, distributed under the Creative Commons
+Attribution-ShareAlike 4.0 International licence (CC-BY-SA-4.0)
+
+    https://chimechallenge.github.io/chime6/
+    https://creativecommons.org/licenses/by-sa/4.0/
+
+and SPGISpeech, used under Kensho's public terms
+
+    https://datasets.kensho.com/datasets/spgispeech
+
+================================================================================
+CODE
+================================================================================
+
+convert_weights.py and build.sh: MIT, see LICENSE-CODE-MIT.txt. convert_weights.py
+is a verbatim copy of the converter in the phonon-2-c engine repository.
+
+fermion_container.py: Apache License 2.0, (c) Fermion Research, see
+LICENSE-CODE-Apache-2.0.txt. It is Fermion's reference reader for the
+fermion-five-value-parakeet-v1 container, copied unchanged from
+https://huggingface.co/FermionResearch/Phonon-2.

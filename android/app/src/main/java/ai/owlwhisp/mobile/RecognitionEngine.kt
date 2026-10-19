@@ -12,10 +12,18 @@ import kotlin.math.sqrt
 /** Confined to OwlWhispApp.worker; never accessed concurrently with release(). */
 class RecognitionEngine : Closeable {
     private var recognizer: OfflineRecognizer? = null
+    private var activeId: String? = null
 
     fun transcribe(repository: ModelRepository, samples: FloatArray): String {
         require(samples.size <= 16_000 * 60) { "Запись длиннее 60 секунд" }
+        require(samples.all { it.isFinite() }) { "Invalid audio" }
         if (samples.isEmpty() || sqrt(samples.sumOf { it.toDouble() * it } / samples.size) < 0.0005) return ""
+        if (activeId != repository.id) { close(); activeId = repository.id }
+        if (repository.engine != "sherpa") {
+            repository.verify()
+            val text = NativeEngines.transcribe(repository.engine, repository.directory.absolutePath, samples)
+            return if (repository.engine == "whistle") org.json.JSONObject(text).getString("text").trim() else text.trim()
+        }
         if (recognizer == null) {
             repository.verify()
             fun path(name: String) = File(repository.directory, name).absolutePath
@@ -41,5 +49,6 @@ class RecognitionEngine : Closeable {
     override fun close() {
         recognizer?.release()
         recognizer = null
+        activeId = null
     }
 }

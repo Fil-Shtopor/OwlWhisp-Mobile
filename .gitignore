@@ -40,3 +40,7 @@ __pycache__/
 
 /ios/.build/
 /ios/Generated/
+
+android/app/src/main/jniLibs/
+
+/.signing/

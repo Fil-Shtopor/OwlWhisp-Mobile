@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "phonon-2",
+  "name": "Phonon-2",
+  "version": "1c91a6a7a26809fecedb35d847bef69663dde8bb",
+  "engine": "phonon",
+  "languages": [
+    "en"
+  ],
+  "license": "CC-BY-4.0",
+  "attribution": "Fermion Research Phonon-2 based on NVIDIA Parakeet (CC-BY-4.0); C export by Eric Schmidbauer",
+  "common": [
+    {
+      "path": "phonon-2-c-weights-v1.tar.gz",
+      "url": "https://huggingface.co/eschmidbauer/phonon-2-c/resolve/1c91a6a7a26809fecedb35d847bef69663dde8bb/phonon-2-c-weights-v1.tar.gz",
+      "bytes": 186618134,
+      "sha256": "48137a58011c4b0bc0a97087ea7e868daabf1525ca8447414be230b21faf99e6",
+      "unpack": [
+        {
+          "path": "tokens.txt",
+          "archive_path": "c_weights/tokens.txt",
+          "bytes": 54086,
+          "sha256": "04d756a9b6601bde84944f64609fb1d379f86731289ff083ecd9d68ddf5cdc2f"
+        },
+        {
+          "path": "weights.bin",
+          "archive_path": "c_weights/weights.bin",
+          "bytes": 255253016,
+          "sha256": "7dbcfd8ce258972cc5604f141ac7d64bbf5251c49bbc79c3e0c09b536e23fea5"
+        },
+        {
+          "path": "weights.json",
+          "archive_path": "c_weights/weights.json",
+          "bytes": 93161,
+          "sha256": "37b0ee8bd7745b30b3c2298d5c7f40ec88f82c7e4995016d21d1b4db37a25397"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "target": "cpu_int8",
+      "files": []
+    }
+  ]
+}

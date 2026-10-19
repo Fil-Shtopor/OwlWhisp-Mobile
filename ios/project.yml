@@ -20,11 +20,15 @@ targets:
       - path: ../shared/models
         type: folder
         buildPhase: resources
+      - path: ../shared/benchmark
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: OwlWhispCore
         product: OwlWhispCore
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: ai.owlwhisp.mobile
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: YES

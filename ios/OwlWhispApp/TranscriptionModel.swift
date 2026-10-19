@@ -1,4 +1,5 @@
 import AVFoundation
+import UIKit
 import Foundation
 import OwlWhispCore
 
@@ -10,6 +11,7 @@ final class TranscriptionModel: ObservableObject {
     @Published var progress = 0.0
     @Published var ready = false
     @Published var text = ""
+    @Published var benchmarkReport = ""
     private var store: ModelStore?
     private let recognizer = LocalRecognizer()
     private let recorder = AudioRecorder()
@@ -62,7 +64,7 @@ final class TranscriptionModel: ObservableObject {
         generation = token
         AVAudioSession.sharedInstance().requestRecordPermission { allowed in
             Task { @MainActor [weak self] in
-                guard let self, self.generation == token else { return }
+                guard let self, self.generation == token, UIApplication.shared.applicationState == .active else { return }
                 guard allowed else { self.status = "Разрешите микрофон в настройках iPhone."; return }
                 do {
                     try self.recorder.start(
@@ -103,7 +105,70 @@ final class TranscriptionModel: ObservableObject {
         phase = .idle
     }
 
+    func unload() {
+        guard phase == .idle else { return }
+        status = "?????? ??? ????????? ?? ??????"
+    }
+
+    func deleteModel() {
+        guard phase == .idle, let store else { return }
+        phase = .processing
+        job = Task {
+            do {
+                try await store.delete()
+                ready = false; status = "?????? ??????? ? ??????????"
+            } catch { status = error.localizedDescription }
+            phase = .idle
+        }
+    }
+
+    func runBenchmark() {
+        guard ready, phase == .idle, let store else { return }
+        phase = .processing
+        let token = UUID(); generation = token
+        job = Task {
+            do {
+                guard let manifestURL = Bundle.main.url(forResource: "fixtures", withExtension: "json", subdirectory: "benchmark"),
+                      let fixtures = try JSONSerialization.jsonObject(with: Data(contentsOf: manifestURL)) as? [[String: Any]]
+                else { throw ModelError.invalidManifest }
+                var rows = [[String: Any]]()
+                for fixture in fixtures {
+                    try Task.checkCancellation()
+                    guard let name = fixture["file"] as? String, let reference = fixture["transcript"] as? String,
+                          let url = Bundle.main.url(forResource: name, withExtension: nil, subdirectory: "benchmark")
+                    else { throw ModelError.invalidManifest }
+                    guard generation == token else { return }
+                    status = "????????: " + name
+                    let audio = try AVAudioFile(forReading: url)
+                    guard let buffer = AVAudioPCMBuffer(pcmFormat: audio.processingFormat, frameCapacity: AVAudioFrameCount(audio.length)) else { throw ModelError.invalidDownload }
+                    try audio.read(into: buffer)
+                    guard audio.processingFormat.sampleRate == 16000, let channel = buffer.floatChannelData?[0] else { throw ModelError.invalidDownload }
+                    let samples = Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+                    let started = Date()
+                    let result = try await recognizer.transcribe(store: store, samples: samples)
+                    let elapsed = Date().timeIntervalSince(started)
+                    rows.append(["file": name, "reference": reference, "transcript": result,
+                                 "wer": BenchmarkMetrics.wordErrorRate(reference: reference, hypothesis: result),
+                                 "audio_s": Double(samples.count) / 16000, "elapsed_s": elapsed,
+                                 "rtf": elapsed / (Double(samples.count) / 16000)])
+                }
+                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.0",
+                    "device": UIDevice.current.model, "os": UIDevice.current.systemVersion,
+                    "mode": "cold: verification + load + decode; 2 CPU threads", "rows": rows]
+                let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+                guard generation == token else { return }
+                benchmarkReport = String(decoding: data, as: UTF8.self)
+                status = "???????? ????????"
+            } catch {
+                guard generation == token else { return }
+                status = error.localizedDescription
+            }
+            if generation == token { phase = .idle }
+        }
+    }
+
     func backgrounded() {
+        if phase == .idle { generation = UUID() }
         if phase == .recording || phase == .processing { cancel(); status = "Запись отменена" }
     }
 }

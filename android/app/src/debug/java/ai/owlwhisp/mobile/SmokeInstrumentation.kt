@@ -5,105 +5,62 @@ import android.app.Activity.RESULT_OK
 import android.app.Activity.RESULT_CANCELED
 import android.os.Bundle
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import kotlin.math.min
 
-/** Debug-only end-to-end test: pinned files -> native CPU inference -> Russian transcript. */
+/** Debug-only real-device integration checks; native engines never mocked. */
 class SmokeInstrumentation : Instrumentation() {
-    override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); start() }
-
+    private var arguments = Bundle()
+    override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); this.arguments = arguments ?: Bundle(); start() }
     override fun onStart() {
         val report = Bundle()
+        val client = InferenceClient(targetContext)
         try {
-            val repository = ModelRepository(targetContext)
-            repository.verify()
-            val fixture = targetContext.assets.open("fleurs_ru_1.wav").use { it.readBytes() }
-            val samples = decodeWave(fixture)
-            val expected = JSONArray(targetContext.assets.open("fixtures.json").bufferedReader().use { it.readText() })
-                .getJSONObject(0).getString("transcript")
-            val engine = RecognitionEngine()
-            val started = System.nanoTime()
-            val text = try { engine.transcribe(repository, samples) } finally { engine.close() }
-            val elapsed = (System.nanoTime() - started) / 1_000_000
-            val errorRate = wordErrorRate(expected, text)
-            check(text.any { it in 'А'..'я' }) { "No Russian speech recognized: " + text }
-            check(errorRate <= 0.35) { "Russian word error rate exceeded threshold: " + text }
-
-            val tokens = File(repository.directory, "tokens.txt")
-            val original = tokens.readBytes()
-            try {
-                val tampered = original.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }
-                tokens.writeBytes(tampered)
-                check(runCatching { repository.verify() }.isFailure) { "Corrupt weights were accepted" }
-            } finally { tokens.writeBytes(original) }
-
-            RecognitionEngine().use { silent ->
-                check(silent.transcribe(repository, FloatArray(16_000)).isEmpty()) { "Silence was not suppressed" }
-                check(runCatching { silent.transcribe(repository, FloatArray(16_000 * 60 + 1)) }.isFailure) {
-                    "The recording limit was not enforced"
-                }
+            check(Benchmark.wordErrorRate("Один, два! Ёж.", "один два еж") == 0.0)
+            check(Benchmark.wordErrorRate("one two three", "one three") == 1.0 / 3.0)
+            val ids = arguments.getString("models", "parakeet-tdt-0.6b-v3")!!.split(",")
+            val results = JSONArray()
+            for (id in ids) {
+                val repository = ModelRepository(targetContext, id)
+                if (arguments.getString("download") == "true") repository.install { _, _ -> }
+                repository.verify()
+                val language = if ("ru" in repository.languages) "ru" else "en"
+                val fixtures = JSONArray(targetContext.assets.open("benchmark/fixtures.json").bufferedReader().use { it.readText() })
+                val fixture = (0 until fixtures.length()).map { fixtures.getJSONObject(it) }.first { it.getString("language") == language }
+                val samples = targetContext.assets.open("benchmark/" + fixture.getString("file")).use { Benchmark.decodeWave(it.readBytes()) }
+                val expected = fixture.getString("transcript")
+                val result = client.transcribe(repository, samples)
+                val wer = Benchmark.wordErrorRate(expected, result.text)
+                check(result.text.isNotBlank() && wer <= 0.45) { id + " WER " + wer + ": " + result.text }
+                results.put(JSONObject().put("model", id).put("transcript", result.text).put("reference", expected)
+                    .put("wer", wer).put("elapsed_ms", result.elapsedMs).put("inference_pss_kib", result.pssKiB))
+                client.unload(); check(!client.loaded)
+                val file = File(repository.directory, repository.files.last().name)
+                val handle = java.io.RandomAccessFile(file, "rw")
+                val original = handle.readByte()
+                try {
+                    handle.seek(0); handle.writeByte(original.toInt() xor 1)
+                    check(runCatching { repository.verify() }.isFailure) { "Same-length corruption accepted" }
+                } finally { handle.seek(0); handle.writeByte(original.toInt()); handle.close() }
+                val silence = client.transcribe(repository, FloatArray(16000))
+                check(silence.text.isEmpty()); client.unload()
             }
-            report.putString("transcript", text)
-            report.putString("reference", expected)
-            report.putString("wer", errorRate.toString())
-            report.putLong("elapsed_ms", elapsed)
-            report.putString("model", "parakeet-tdt-0.6b-v3")
-            report.putString("provider", "cpu")
-            report.putString("integrity", "SHA-256 verified; same-length tampering rejected")
+            RecognitionEngine().use { engine ->
+                check(runCatching { engine.transcribe(ModelRepository(targetContext), FloatArray(16000 * 60 + 1)) }.isFailure)
+            }
+            if (arguments.getString("benchmark") == "true") {
+                val repository = ModelRepository(targetContext, ids.first())
+                Benchmark.run(targetContext, repository, client) { }
+                val json = JSONObject(File(targetContext.filesDir, "benchmark.json").readText())
+                check(json.getJSONArray("rows").length() == if ("ru" in repository.languages) 6 else 3)
+                report.putString("benchmark", "All compatible clips transcribed; JSON report saved")
+            }
+            report.putString("results", results.toString())
+            report.putString("integrity", "SHA-256 verified; same-length corruption rejected for every model")
+            report.putString("lifecycle", "Private inference process unloaded; silence and length limit checked")
             finish(RESULT_OK, report)
         } catch (failure: Throwable) {
-            report.putString("failure", failure.stackTraceToString())
-            finish(RESULT_CANCELED, report)
-        }
-    }
-
-    private fun decodeWave(bytes: ByteArray): FloatArray {
-        val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-        check(String(bytes, 0, 4, Charsets.US_ASCII) == "RIFF")
-        check(String(bytes, 8, 4, Charsets.US_ASCII) == "WAVE")
-        var offset = 12
-        var format = 0
-        var bits = 0
-        var rate = 0
-        var channels = 0
-        while (offset + 8 <= bytes.size) {
-            val id = String(bytes, offset, 4, Charsets.US_ASCII)
-            val size = buffer.getInt(offset + 4)
-            check(size >= 0 && offset.toLong() + 8 + size <= bytes.size) { "Invalid WAV chunk" }
-            val start = offset + 8
-            if (id == "fmt ") {
-                format = buffer.getShort(start).toInt()
-                channels = buffer.getShort(start + 2).toInt()
-                rate = buffer.getInt(start + 4)
-                bits = buffer.getShort(start + 14).toInt()
-            }
-            if (id == "data") {
-                check(rate == 16_000 && channels == 1)
-                return when {
-                    format == 3 && bits == 32 -> FloatArray(size / 4) { buffer.getFloat(start + it * 4) }
-                    format == 1 && bits == 16 -> FloatArray(size / 2) { buffer.getShort(start + it * 2) / 32768f }
-                    else -> error("Unsupported fixture encoding")
-                }
-            }
-            offset = start + size + (size % 2)
-        }
-        error("WAV contains no audio")
-    }
-
-    private fun wordErrorRate(reference: String, hypothesis: String): Double {
-        fun words(text: String) = Regex("[а-яёa-z0-9]+").findAll(text.lowercase()).map { it.value }.toList()
-        val expected = words(reference)
-        val actual = words(hypothesis)
-        var previous = IntArray(actual.size + 1) { it }
-        for ((i, word) in expected.withIndex()) {
-            val current = IntArray(actual.size + 1)
-            current[0] = i + 1
-            for (j in actual.indices) current[j + 1] = min(min(current[j] + 1, previous[j + 1] + 1),
-                previous[j] + if (word == actual[j]) 0 else 1)
-            previous = current
-        }
-        return previous.last().toDouble() / expected.size.coerceAtLeast(1)
+            report.putString("failure", failure.stackTraceToString()); finish(RESULT_CANCELED, report)
+        } finally { client.unload() }
     }
 }

@@ -20,6 +20,7 @@ def main():
     if not properties.exists():
         properties.write_text("sdk.dir=" + Path(sdk).as_posix().replace(":", "\\:") + "\n", encoding="utf-8")
     subprocess.run([sys.executable, str(ROOT / "scripts/prepare.py")], check=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts/prepare_native.py")], check=True)
     subprocess.run([java, "-classpath", str(ROOT / "android/gradle/wrapper/gradle-wrapper.jar"),
                     "org.gradle.wrapper.GradleWrapperMain", ":app:assembleDebug", ":app:lintDebug",
                     "--no-daemon", "--console", "plain"], cwd=ROOT / "android", check=True)
