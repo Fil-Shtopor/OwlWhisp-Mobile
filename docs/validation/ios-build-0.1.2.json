@@ -1,0 +1,28 @@
+{
+  "source_commit": "2e4dea7ab6fe245a885b43d7e0caa16ad2bae0c6",
+  "xcode": "Xcode 16.4\nBuild version 16F6",
+  "device": {
+    "architectures": [
+      "arm64"
+    ],
+    "version": "0.1.2",
+    "build": "3",
+    "minimum_os": "16.0",
+    "platform": "IOS",
+    "load_commands": "/Users/runner/work/OwlWhisp-Mobile/OwlWhisp-Mobile/.cache/ios/OwlWhispMobile.xcarchive/Products/Applications/OwlWhispMobile.app/OwlWhispMobile:\nLoad command 11\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 16.0\n      sdk 18.5\n   ntools 1\n     tool LD\n  version 1167.5"
+  },
+  "simulator": {
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "version": "0.1.2",
+    "build": "3",
+    "minimum_os": "16.0",
+    "platform": "IOSSIMULATOR",
+    "load_commands": "/Users/runner/work/OwlWhisp-Mobile/OwlWhisp-Mobile/.cache/ios/simulator/Build/Products/Release-iphonesimulator/OwlWhispMobile.app/OwlWhispMobile (architecture x86_64):\nLoad command 11\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOSSIMULATOR\n    minos 16.0\n      sdk 18.5\n   ntools 1\n     tool LD\n  version 1167.5\n/Users/runner/work/OwlWhisp-Mobile/OwlWhisp-Mobile/.cache/ios/simulator/Build/Products/Release-iphonesimulator/OwlWhispMobile.app/OwlWhispMobile (architecture arm64):\nLoad command 11\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOSSIMULATOR\n    minos 16.0\n      sdk 18.5\n   ntools 1\n     tool LD\n  version 1167.5"
+  },
+  "device_signing": "Unsigned. Requires an Apple signing identity and provisioning before installation.",
+  "simulator_install": "macOS/Xcode only. Unzip, then xcrun simctl install booted OwlWhispMobile.app.",
+  "physical_iphone_validated": false
+}

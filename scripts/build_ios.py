@@ -15,7 +15,7 @@ def run(*args, cwd=ROOT):
     subprocess.run([str(arg) for arg in args], cwd=cwd, check=True)
 
 def output(*args):
-    return subprocess.check_output([str(arg) for arg in args], text=True).strip()
+    return subprocess.check_output([str(arg) for arg in args], cwd=ROOT, text=True).strip()
 
 def inspect(app, platform):
     with (app / "Info.plist").open("rb") as stream:

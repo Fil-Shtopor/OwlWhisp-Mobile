@@ -1,3 +1,24 @@
+# Keyboard setup and iOS packaging follow-up
+
+Recorded 2026-10-19. Android 0.1.2 application sources at commit 2e4dea7 were compiled as debug
+and unsigned release; debug lint passed. On the isolated Pixel 6 API 34 emulator, the new
+setup flow requested microphone permission, opened Android keyboard management, enabled
+OwlWhisp with its actual system switch, accepted the system confirmations, selected it from
+the system picker and displayed it in a text editor. No `adb shell ime enable/set` commands
+were used. Returning from system settings refreshed the app's enabled/selected status.
+See validation/android-keyboard-setup-0.1.2.json; the recorded APK hash is a debug build.
+The specific Samsung device remains unvalidated. A signed 0.1.2 Android update is pending
+access to the existing Windows-protected signing credential; no replacement key was created.
+
+The macOS CI build at the same commit passed Swift tests and produced a Release ARM64
+`iPhoneOS` IPA and a separate universal ARM64/x86_64 `iPhoneSimulator` app ZIP using Xcode 16.4.
+The build script verifies Mach-O LC_BUILD_VERSION platform values and bundle versioning.
+Local verification checked both ZIP archives, Info.plist platform values, model manifests,
+absence of a device signing profile/signature and all package SHA-256 checksums.
+See validation/ios-build-0.1.2.json. The device IPA requires personal or distribution signing;
+packaging is not a physical-iPhone microphone/inference test. An additional release workflow
+builds the original 0.1.1 tag to backfill matching iOS assets without changing the Android APK.
+
 # Validation for 0.1.0
 
 Recorded 2026-10-19 on Windows with an isolated, headless Pixel 6 API 34 x86_64 emulator

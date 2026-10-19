@@ -19,6 +19,29 @@ GitHub Actions runs Swift package tests, archives the device app and builds the 
 The workflow uploads both packages as the `ios-release` artifact; tested packages are attached
 to GitHub releases. Models download separately after installation.
 
+## Personal signing from Windows or macOS
+
+A paid developer account is not required for personal sideloading with
+[Sideloadly](https://sideloadly.io/). This is a third-party signing tool, separate from OwlWhisp.
+
+1. Download the release's `ios-unsigned.ipa` file to your computer.
+2. Install Sideloadly from its official site. On Windows, follow its instructions for the
+   web versions of Apple's iTunes and iCloud; its site provides the required Apple links.
+3. Connect and unlock the iPhone by USB, trust the computer and select it in Sideloadly.
+4. Load the IPA, use your own Apple account in Sideloadly and start installation. Never send
+   your Apple password, verification code or signing identity to this repository or its chat.
+5. If iOS requests it, trust the developer in Settings > General > VPN & Device Management
+   and enable Developer Mode in Settings > Privacy & Security, then restart as prompted.
+6. Launch OwlWhisp, download Parakeet in Models, allow the microphone and dictate. Copy or
+   share the transcript into another app.
+
+With a free account the signature expires after seven days; re-sign/refresh with the same
+account before it expires. Sideloadly offers automatic refresh while the computer is available.
+The iPhone still needs iOS 16 or later. Do not lower the IPA's minimum OS version in the tool.
+This repository's IPA packaging is validated; signing and microphone operation on a physical
+iPhone still need device testing. See Sideloadly's official installation guide and FAQ for its
+current requirements. A simulator ZIP is not the file to use for personal signing.
+
 ## Build and install on an iPhone
 
 On macOS install Xcode and XcodeGen, then from the repository root:

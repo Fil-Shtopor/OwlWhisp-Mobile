@@ -3,12 +3,15 @@
 Offline voice input for Android and iPhone, in a separate repository from
 [OwlWhisp Desktop](https://github.com/Fil-Shtopor/OwlWhisp).
 
-[Download Android and iOS 0.1.2](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.2)
+[Download the current release](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.1)
 
 The default model is **ordinary NVIDIA Parakeet TDT 0.6B v3 INT8**, with 25 languages,
 including Russian. Models download separately from the APK.
 
-## Android 0.1.2
+## Android
+
+Published Android version: 0.1.1. The guided keyboard setup and regular selectable IME on
+main are prepared for 0.1.2; a signed update has not been published yet.
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
 - OwlWhisp's owl icon and dark palette.
@@ -41,7 +44,8 @@ capture/resampling, verified downloads, local benchmark, copy and share. Swift t
 iOS device archive and simulator build pass in GitHub Actions. It has not been tested on a physical iPhone.
 Redux, Whistle and Phonon adapters and a keyboard extension are not yet implemented on iOS.
 Releases include an **unsigned ARM64 iPhone IPA** and a **simulator app ZIP**. The IPA requires
-Apple signing before installation; the simulator ZIP requires macOS/Xcode. There is no
+personal Apple signing before installation, for example with Sideloadly on Windows or macOS;
+the simulator ZIP requires macOS/Xcode. There is no
 TestFlight/App Store distribution yet. See [iOS installation and signing](ios/README.md).
 
 ## Build
