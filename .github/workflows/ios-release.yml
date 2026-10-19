@@ -1,0 +1,54 @@
+name: iOS release packages
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and attach unsigned iOS packages to
+        required: true
+        default: v0.1.1
+        type: string
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: build-tools
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          path: source
+      - name: Verify existing release and source version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view "$RELEASE_TAG" --json tagName
+          python3 - <<'PY'
+          import os, pathlib, re
+          tag = os.environ["RELEASE_TAG"]
+          assert re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag), "A version tag is required"
+          project = pathlib.Path("source/ios/project.yml").read_text()
+          assert f'MARKETING_VERSION: "{tag[1:]}"' in project, "Tag and iOS version differ"
+          PY
+      - run: swift test
+        working-directory: source/ios
+      - run: brew install xcodegen
+      - name: Build packages from release sources
+        run: |
+          cp build-tools/scripts/build_ios.py source/scripts/build_ios.py
+          python3 source/scripts/build_ios.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-${{ inputs.tag }}
+          path: source/.cache/ios-release/*
+          if-no-files-found: error
+      - name: Attach unsigned device and simulator packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "$RELEASE_TAG" source/.cache/ios-release/*

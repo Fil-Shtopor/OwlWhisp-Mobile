@@ -74,6 +74,7 @@ Choose your Apple signing team to install on a physical iPhone.
     python -m unittest discover -s tests -v
     python scripts/prepare.py --model-dir .cache/models/parakeet-tdt-0.6b-v3
     python scripts/android-smoke.py --serial emulator-5580
+    python scripts/android-keyboard-smoke.py --serial emulator-5580 --fresh
     python scripts/android-release-smoke.py --serial emulator-5580 --fresh
 
 The last script removes only this app on the explicitly selected disposable emulator, installs

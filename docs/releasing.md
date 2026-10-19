@@ -38,3 +38,10 @@ The unsigned IPA is a device build for subsequent signing. Label it **unsigned; 
 in every download description. A simulator build does not run on a phone. Neither artifact is
 an install-ready signed iPhone release. Apple distribution signing is a separate owner setup;
 see [iOS signing and installation](../ios/README.md). Never publish credentials or private keys.
+
+To backfill iOS packages on an existing version, dispatch **iOS release packages** with its
+existing tag. The workflow checks out that tag, verifies the marketing version, runs Swift
+tests, builds both packages and attaches them to the existing release without overwriting
+assets. Build tooling comes from the workflow revision; application sources come from the
+release tag. The separate `iOS-SHA256SUMS` covers the iOS assets. Release notes must explain
+that the IPA requires signing before installation.
