@@ -32,7 +32,7 @@ class InferenceService : Service() {
                     val name = data.getString("audio") ?: error("No audio")
                     require(name.matches(Regex("inference-[a-f0-9-]+\\.pcm")))
                     val file = File(cacheDir, name)
-                    require(file.length() in 4..(16000L * 60 * 4) && file.length() % 4 == 0L)
+                    require(file.length() in 4..(RecordingPolicy.CHUNK_SAMPLES.toLong() * 4) && file.length() % 4 == 0L)
                     val bytes = file.readBytes()
                     val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
                     val samples = FloatArray(bytes.size / 4) { buffer.float }

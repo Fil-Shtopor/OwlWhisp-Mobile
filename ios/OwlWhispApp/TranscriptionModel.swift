@@ -12,6 +12,9 @@ final class TranscriptionModel: ObservableObject {
     @Published var ready = false
     @Published var text = ""
     @Published var benchmarkReport = ""
+    @Published var recordingLimitSeconds = 0 {
+        didSet { UserDefaults.standard.set(recordingLimitSeconds, forKey: "recordingLimitSeconds") }
+    }
     private var store: ModelStore?
     private let recognizer = LocalRecognizer()
     private let recorder = AudioRecorder()
@@ -19,6 +22,12 @@ final class TranscriptionModel: ObservableObject {
     private var generation = UUID()
 
     init() {
+        let savedLimit = UserDefaults.standard.integer(forKey: "recordingLimitSeconds")
+        recordingLimitSeconds = RecordingPolicy.limits.contains(savedLimit) ? savedLimit : 0
+        let temporary = FileManager.default.temporaryDirectory
+        if let files = try? FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil) {
+            for file in files where file.lastPathComponent.hasPrefix("owlwhisp-recording-") && file.pathExtension == "pcm16" { try? FileManager.default.removeItem(at: file) }
+        }
         do {
             guard let manifestURL = Bundle.main.url(forResource: "parakeet-tdt-0.6b-v3", withExtension: "json", subdirectory: "models") else { throw ModelError.invalidManifest }
             let manifest = try ModelManifest.decode(Data(contentsOf: manifestURL))
@@ -67,11 +76,11 @@ final class TranscriptionModel: ObservableObject {
                 guard let self, self.generation == token, UIApplication.shared.applicationState == .active else { return }
                 guard allowed else { self.status = "Allow microphone access in iPhone settings."; return }
                 do {
-                    try self.recorder.start(
-                        onLimit: { [weak self] in self?.finishRecording() },
-                        onError: { [weak self] message in self?.cancel(); self?.status = message })
+                    try self.recorder.start(limitSeconds: self.recordingLimitSeconds,
+                        onLimit: { [weak self] in guard self?.generation == token else { return }; self?.finishRecording() },
+                        onError: { [weak self] message in guard self?.generation == token else { return }; self?.cancel(); self?.status = message })
                     self.phase = .recording
-                    self.status = "Listening… Up to 60 seconds"
+                    self.status = "Listening - " + RecordingPolicy.label(self.recordingLimitSeconds)
                 } catch { self.status = error.localizedDescription }
             }
         }
@@ -79,13 +88,21 @@ final class TranscriptionModel: ObservableObject {
 
     func finishRecording() {
         guard phase == .recording, let store else { return }
-        let audio = recorder.stop()
+        let audio: URL
+        do { audio = try recorder.finish() }
+        catch { phase = .idle; status = error.localizedDescription; return }
         phase = .processing
         status = "Transcribing on device…"
         let token = generation
         job = Task {
+            defer { try? FileManager.default.removeItem(at: audio) }
             do {
-                let result = try await recognizer.transcribe(store: store, samples: audio)
+                let result = try await recognizer.transcribeRecording(store: store, url: audio) { value in
+                    Task { @MainActor [weak self] in
+                        guard self?.generation == token else { return }
+                        self?.status = "Transcribing on device: " + String(Int(value * 100)) + "%"
+                    }
+                }
                 guard generation == token else { return }
                 if !result.isEmpty { text += (text.isEmpty ? "" : " ") + result }
                 status = result.isEmpty ? "No speech detected" : "Ready"
@@ -101,7 +118,7 @@ final class TranscriptionModel: ObservableObject {
         generation = UUID()
         job?.cancel()
         job = nil
-        _ = recorder.stop()
+        recorder.cancel()
         phase = .idle
     }
 
@@ -152,7 +169,7 @@ final class TranscriptionModel: ObservableObject {
                                  "audio_s": Double(samples.count) / 16000, "elapsed_s": elapsed,
                                  "rtf": elapsed / (Double(samples.count) / 16000)])
                 }
-                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.1",
+                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.2",
                     "device": UIDevice.current.model, "os": UIDevice.current.systemVersion,
                     "mode": "cold: verification + load + decode; 2 CPU threads", "rows": rows]
                 let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])

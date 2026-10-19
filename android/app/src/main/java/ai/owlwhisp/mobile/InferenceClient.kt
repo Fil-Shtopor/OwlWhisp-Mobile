@@ -43,7 +43,7 @@ class InferenceClient(private val context: Context) {
         } finally { pending = null }
     }
     fun transcribe(repository: ModelRepository, samples: FloatArray): InferenceResult {
-        require(samples.isNotEmpty() && samples.size <= 16000 * 60)
+        require(samples.isNotEmpty() && samples.size <= RecordingPolicy.CHUNK_SAMPLES)
         val file = File(context.cacheDir, "inference-" + UUID.randomUUID() + ".pcm")
         try {
             val bytes = ByteBuffer.allocate(samples.size * 4).order(ByteOrder.LITTLE_ENDIAN)
@@ -53,6 +53,22 @@ class InferenceClient(private val context: Context) {
             response.getString("error")?.let { error(it) }
             return InferenceResult(response.getString("text").orEmpty(), response.getLong("elapsed_ms"), response.getInt("pss_kib"), response.getInt("peak_pss_kib"))
         } catch (failure: Throwable) { unload(); throw failure } finally { file.delete() }
+    }
+    fun transcribeRecording(repository: ModelRepository, file: File, cancelled: () -> Boolean,
+        progress: (Int) -> Unit = {}): InferenceResult {
+        val started = System.nanoTime(); var text = ""; var pss = 0; var peak = 0
+        AudioChunks(file).use { chunks ->
+            while (true) {
+                check(!cancelled()) { "Recording cancelled" }
+                val chunk = chunks.next() ?: break
+                val part = transcribe(repository, chunk.samples)
+                check(!cancelled()) { "Recording cancelled" }
+                text = AudioChunks.appendTranscript(text, part.text, chunk.overlapsPrevious)
+                pss = part.pssKiB; peak = maxOf(peak, part.peakPssKiB)
+                progress((chunk.end * 100 / chunks.totalSamples).toInt())
+            }
+        }
+        return InferenceResult(text, (System.nanoTime() - started) / 1_000_000, pss, peak)
     }
     fun unload() {
         if (endpoint != null) runCatching { request(2) }

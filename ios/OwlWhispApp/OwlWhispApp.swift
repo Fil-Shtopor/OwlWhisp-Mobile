@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import OwlWhispCore
 
 @main
 @MainActor
@@ -46,12 +47,20 @@ private struct ContentView: View {
                             ShareLink(item: model.text) { Label("Share", systemImage: "square.and.arrow.up") }
                             Button("Clear") { model.text = "" }
                         }.disabled(model.text.isEmpty)
-                        Text("Up to 60 seconds per recording. Audio is not uploaded.").font(.footnote).foregroundStyle(.secondary)
+                        Text("Recording limit: " + RecordingPolicy.label(model.recordingLimitSeconds) + ". Audio is not uploaded.").font(.footnote).foregroundStyle(.secondary)
                     }.padding(20)
                 }.background(background).navigationTitle("Dictate").navigationBarTitleDisplayMode(.inline)
             }.tabItem { Label("Dictate", systemImage: "mic") }
             NavigationStack {
                 Form {
+                    Section("Recording") {
+                        Picker("Recording limit", selection: $model.recordingLimitSeconds) {
+                            ForEach(RecordingPolicy.limits, id: \.self) { seconds in
+                                Text(RecordingPolicy.label(seconds)).tag(seconds)
+                            }
+                        }.disabled(model.phase != .idle)
+                        Text("No time limit by default. Audio is saved temporarily on device and transcribed in short sections after you stop.")
+                    }
                     Section("Memory") {
                         Text("The model is released after every recording. There is no persistent background process.")
                         Button("Unload model") { model.unload() }.disabled(model.phase != .idle)

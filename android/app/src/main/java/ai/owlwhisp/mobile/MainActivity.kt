@@ -103,13 +103,20 @@ class MainActivity : Activity() {
                 button("Set up voice keyboard") { startActivity(Intent(this, KeyboardSetupActivity::class.java)) }
                 button("Copy text") { copy(transcript?.text.toString()) }
                 button("Clear") { savedText = ""; transcript?.setText("") }
-                content.addView(label("Recordings are limited to 60 seconds. Audio is deleted after processing.", true))
+                content.addView(label("Recording limit: " + RecordingPolicy.label(app.recordingLimitSeconds) + ". Audio is deleted after processing.", true))
             }
             1 -> {
+                title("Recording")
+                content.addView(label("No time limit by default. Audio is saved temporarily on device and transcribed in short sections after you stop.", true))
+                RecordingPolicy.limits.forEach { seconds ->
+                    button((if (app.recordingLimitSeconds == seconds) "Selected: " else "") + RecordingPolicy.label(seconds)) {
+                        app.setRecordingLimit(seconds); showTab(1)
+                    }
+                }
                 content.addView(label("Memory"))
                 content.addView(label("Models unload after each dictation by default. Parakeet can stay ready for a short time.", true))
                 listOf(0 to "Unload immediately", 30 to "Parakeet: keep ready for 30 seconds", 300 to "Parakeet: keep ready for 5 minutes").forEach { (seconds, text) ->
-                    button((if (app.warmSeconds == seconds) "✓ " else "") + text) { app.setWarmSeconds(seconds); showTab(1) }
+                    button((if (app.warmSeconds == seconds) "âœ“ " else "") + text) { app.setWarmSeconds(seconds); showTab(1) }
                 }
                 button("Unload now") { app.unload() }
                 title("Voice keyboard")
@@ -122,10 +129,10 @@ class MainActivity : Activity() {
                 app.models.forEach { repository ->
                     content.addView(label(repository.name).apply { setTypeface(null, Typeface.BOLD) })
                     val languages = if (repository.languages.size > 10) "25 languages, including Russian" else repository.languages.joinToString(", ")
-                    content.addView(label(languages + " · download " + repository.totalBytes / 1024 / 1024 + " MiB\n" +
-                        repository.manifest.getString("license") + " · " + if (repository.present()) "on device" else "not downloaded", true))
+                    content.addView(label(languages + " Â· download " + repository.totalBytes / 1024 / 1024 + " MiB\n" +
+                        repository.manifest.getString("license") + " Â· " + if (repository.present()) "on device" else "not downloaded", true))
                     if (repository.supported) {
-                        button(if (repository.id == app.model.id) "✓ Selected" else "Select") { app.selectModel(repository.id); showTab(2) }
+                        button(if (repository.id == app.model.id) "âœ“ Selected" else "Select") { app.selectModel(repository.id); showTab(2) }
                         button(if (repository.present()) "Verify / repair" else "Download") { app.installModel(repository) }
                         if (repository.present()) button("Remove from device") {
                             AlertDialog.Builder(this).setTitle("Remove " + repository.name + "?")
@@ -147,7 +154,7 @@ class MainActivity : Activity() {
                     val rows = json.getJSONArray("rows")
                     for (i in 0 until rows.length()) {
                         val row = rows.getJSONObject(i)
-                        content.addView(label(row.getString("file") + "\n" + String.format(Locale.ROOT, "WER %.1f%% · RTF %.2f · %.2f s", row.getDouble("wer") * 100, row.getDouble("rtf"), row.getLong("elapsed_ms") / 1000.0) + " · PSS max " + row.optInt("sampled_peak_pss_kib") / 1024 + " MiB"))
+                        content.addView(label(row.getString("file") + "\n" + String.format(Locale.ROOT, "WER %.1f%% Â· RTF %.2f Â· %.2f s", row.getDouble("wer") * 100, row.getDouble("rtf"), row.getLong("elapsed_ms") / 1000.0) + " Â· PSS max " + row.optInt("sampled_peak_pss_kib") / 1024 + " MiB"))
                         content.addView(label(row.getString("transcript"), true))
                     }
                     button("Share JSON report") {
@@ -155,11 +162,11 @@ class MainActivity : Activity() {
                     }
                     button("Copy JSON report") { copy(report.readText()) }
                 }
-                content.addView(label("FLEURS: Conneau et al., 2022 · google/fleurs · CC-BY-4.0. A small comparison set, not a full-dataset accuracy evaluation.", true))
+                content.addView(label("FLEURS: Conneau et al., 2022 Â· google/fleurs Â· CC-BY-4.0. A small comparison set, not a full-dataset accuracy evaluation.", true))
             }
             4 -> {
                 val memory = Debug.MemoryInfo(); Debug.getMemoryInfo(memory)
-                content.addView(label("OwlWhisp Mobile 0.1.2\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
+                content.addView(label("OwlWhisp Mobile 0.1.2\nAndroid " + Build.VERSION.RELEASE + " Â· " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
                     "\nUI PSS: " + memory.totalPss / 1024 + " MiB\nModel process: " + if (app.client.loaded) "running" else "unloaded"))
                 content.addView(label(app.lastMetrics, true))
                 button("Refresh") { showTab(4) }
