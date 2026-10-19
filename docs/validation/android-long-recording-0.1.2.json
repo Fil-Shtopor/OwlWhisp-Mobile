@@ -1,0 +1,37 @@
+{
+  "recorded_on": "2026-10-19",
+  "platform": "Android API 34 x86_64 isolated Pixel 6 emulator",
+  "emulator_ram_mib": 4096,
+  "recognition_source_commit": "b73f9c2745c0eddf0443425a4b70717d335855c0",
+  "capture": {
+    "seconds_requested": 170,
+    "pcm16_bytes": 5439488,
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "auto_stop_callbacks": 0,
+    "silent_transcript": "",
+    "result": "passed"
+  },
+  "recognition": {
+    "duration_seconds": 72,
+    "model": "parakeet-tdt-0.6b-v3",
+    "fixture": "fleurs_en_1 repeated three times with long silence gaps",
+    "wer": 0.15,
+    "sampled_peak_inference_pss_kib": 816083,
+    "all_three_utterances_present": true,
+    "result": "passed"
+  },
+  "regressions": [
+    "80-second file coverage",
+    "maximum 30-second inference chunks",
+    "pause boundaries",
+    "overlap transcript stitching",
+    "preserved non-overlap repetitions",
+    "quiet speech surrounded by silence",
+    "unlimited default"
+  ],
+  "limits": [
+    "Emulator measurements only; no physical phone performance or battery claim.",
+    "The 170-second microphone test preceded the quiet-margin fix; the capture implementation was unchanged and corrected recognition was rerun."
+  ]
+}

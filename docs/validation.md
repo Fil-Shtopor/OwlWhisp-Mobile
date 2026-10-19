@@ -15,6 +15,22 @@ Install the debug APK, grant microphone permission and stage the verified ordina
 files with the existing smoke-test tooling first. The capture test opens its activity so the
 microphone remains in the foreground. It removes its private temporary audio after testing.
 
+Recorded 2026-10-19 on the isolated Pixel 6 API 34 x86_64 emulator (4 GiB RAM).
+A real microphone capture ran for 170 seconds with the unlimited policy, produced
+5,439,488 bytes of PCM16 and did not call the auto-stop callback. Its silent audio
+produced no transcript. A separate 72-second file containing three quiet English FLEURS
+utterances separated by long pauses was transcribed with real ordinary Parakeet weights:
+all three utterances appeared, WER was 15%, and sampled peak inference PSS was 816,083 KiB.
+These are emulator observations, not phone performance estimates. The model's RAM use
+is separate from the small recording buffers and disk-file size.
+
+The long-file check initially exposed a whole-chunk energy gate discarding quiet speech
+surrounded by silence. The final implementation measures short audio frames and trims
+quiet margins with 500 ms padding before inference. The corrected Android test passed;
+the equivalent Swift regression test and device/simulator compilation run in CI.
+See validation/android-long-recording-0.1.2.json. The 170-second capture path was unchanged
+by the energy-gate correction; recognition was rerun against the corrected build.
+
 The sections below preserve earlier development measurements. Their duration limits and
 pending-signing statements apply to those earlier builds, before the 0.1.2 recording changes.
 
