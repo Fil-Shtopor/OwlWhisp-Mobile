@@ -1,0 +1,45 @@
+name: OwlWhispMobile
+options:
+  bundleIdPrefix: ai.owlwhisp
+  deploymentTarget:
+    iOS: "16.0"
+packages:
+  OwlWhispCore:
+    path: .
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  OwlWhispMobile:
+    type: application
+    platform: iOS
+    sources:
+      - path: OwlWhispApp
+      - path: ../shared/models
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: OwlWhispCore
+        product: OwlWhispCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.owlwhisp.mobile
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+    info:
+      path: Generated/Info.plist
+      properties:
+        CFBundleDisplayName: OwlWhisp
+        NSMicrophoneUsageDescription: Микрофон нужен для локального голосового ввода. Аудио остаётся на устройстве.
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+schemes:
+  OwlWhispMobile:
+    build:
+      targets:
+        OwlWhispMobile: all
+    run:
+      config: Debug

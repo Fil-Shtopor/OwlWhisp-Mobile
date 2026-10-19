@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">OwlWhisp</string>
+    <string name="model_caption">Parakeet 0.6B v3 · 25 языков\nВключая русский · около 639 МиБ</string>
+    <string name="privacy_notice">После загрузки модели интернет не нужен. Аудио не сохраняется.\nПервый запуск модели может занять несколько секунд.</string>
+    <string name="model_attribution">Parakeet TDT 0.6B v3 — NVIDIA, CC-BY-4.0. Экспорт ONNX — Fangjun Kuang. Движок sherpa-onnx — Apache-2.0; ONNX Runtime — MIT. Исходники и лицензии: huggingface.co/nvidia/parakeet-tdt-0.6b-v3 и github.com/k2-fsa/sherpa-onnx.</string>
+</resources>

@@ -1,0 +1,69 @@
+{
+    "schema_version":  1,
+    "id":  "parakeet-tdt-0.6b-v3",
+    "name":  "NVIDIA Parakeet TDT 0.6B v3 (INT8, sherpa-onnx export)",
+    "version":  "csukuangfj-2bda32ec",
+    "license":  "CC-BY-4.0",
+    "attribution":  "NVIDIA Parakeet TDT 0.6B v3 (CC-BY-4.0); ONNX export by Fangjun Kuang for k2-fsa/sherpa-onnx (Apache-2.0)",
+    "local_dir":  "parakeet-tdt-0.6b-v3",
+    "languages":  [
+                      "en",
+                      "es",
+                      "fr",
+                      "de",
+                      "it",
+                      "pt",
+                      "ru",
+                      "uk",
+                      "pl",
+                      "nl",
+                      "cs",
+                      "sk",
+                      "sl",
+                      "hr",
+                      "bg",
+                      "ro",
+                      "hu",
+                      "el",
+                      "da",
+                      "sv",
+                      "fi",
+                      "et",
+                      "lv",
+                      "lt",
+                      "mt"
+                  ],
+    "common":  [
+                   {
+                       "path":  "tokens.txt",
+                       "url":  "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/2bda32ec70b097a55adaa07d9a7173915b43cc78/tokens.txt",
+                       "bytes":  93939,
+                       "sha256":  "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"
+                   }
+               ],
+    "artifacts":  [
+                      {
+                          "target":  "cpu_int8",
+                          "files":  [
+                                        {
+                                            "path":  "decoder.int8.onnx",
+                                            "url":  "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/2bda32ec70b097a55adaa07d9a7173915b43cc78/decoder.int8.onnx",
+                                            "bytes":  11845275,
+                                            "sha256":  "179e50c43d1a9de79c8a24149a2f9bac6eb5981823f2a2ed88d655b24248db4e"
+                                        },
+                                        {
+                                            "path":  "joiner.int8.onnx",
+                                            "url":  "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/2bda32ec70b097a55adaa07d9a7173915b43cc78/joiner.int8.onnx",
+                                            "bytes":  6355277,
+                                            "sha256":  "3164c13fc2821009440d20fcb5fdc78bff28b4db2f8d0f0b329101719c0948b3"
+                                        },
+                                        {
+                                            "path":  "encoder.int8.onnx",
+                                            "url":  "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/2bda32ec70b097a55adaa07d9a7173915b43cc78/encoder.int8.onnx",
+                                            "bytes":  652184281,
+                                            "sha256":  "acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247"
+                                        }
+                                    ]
+                      }
+                  ]
+}

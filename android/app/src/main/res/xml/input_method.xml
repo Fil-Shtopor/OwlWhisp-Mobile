@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="ai.owlwhisp.mobile.MainActivity"
+    android:supportsSwitchingToNextInputMethod="true">
+    <subtype android:label="OwlWhisp" android:imeSubtypeLocale="ru_RU"
+        android:imeSubtypeMode="voice" android:isAuxiliary="true"
+        android:overridesImplicitlyEnabledSubtype="true" />
+</input-method>

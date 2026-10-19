@@ -1,0 +1,13 @@
+[
+  {
+    "file": "fleurs_ru_1.wav",
+    "language": "ru",
+    "duration_s": 5.64,
+    "sample_rate": 16000,
+    "transcript": "Основной религией в Молдавии является православное христианство.",
+    "transcript_normalized": "основной религией в молдавии является православное христианство",
+    "source": "google/fleurs ru_ru dev 2185040307306545167.wav",
+    "license": "CC-BY-4.0",
+    "attribution": "FLEURS (Conneau et al., 2022), https://huggingface.co/datasets/google/fleurs"
+  }
+]

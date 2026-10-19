@@ -1,0 +1,13 @@
+{
+  "version": "1.13.6",
+  "android": {
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.6/sherpa-onnx-static-link-onnxruntime-1.13.6.aar",
+    "sha256": "01e87037afca2ed49085062aace5c012e60321e8e23e3a72b6d9ac02c843f66c",
+    "bytes": 37751439
+  },
+  "ios": {
+    "repository": "https://github.com/k2-fsa/sherpa-onnx",
+    "version": "1.13.6",
+    "product": "sherpa-onnx"
+  }
+}
