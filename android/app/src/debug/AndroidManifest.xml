@@ -3,7 +3,7 @@
     <application>
         <activity android:name=".PanelPreviewActivity" android:exported="false" />
         <activity android:name=".EditorTestActivity" android:exported="false" />
-        <activity android:name=".RemoteEditorTestActivity" android:process=":editor-test" android:exported="false" />
+        <activity android:name=".RemoteEditorTestActivity" android:process=":editor_test" android:exported="false" />
     </application>
     <instrumentation android:name=".EditorDeliveryInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Remembered editor delivery checks" />
     <instrumentation android:name=".CatalogInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Downloaded model recognition checks" />
