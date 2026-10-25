@@ -2,8 +2,8 @@ import Foundation
 import CryptoKit
 
 public actor ModelStore {
-    public let manifest: ModelManifest
-    public let directory: URL
+    public nonisolated let manifest: ModelManifest
+    public nonisolated let directory: URL
 
     public init(manifest: ModelManifest, directory: URL) {
         self.manifest = manifest
