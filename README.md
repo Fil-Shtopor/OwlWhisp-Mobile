@@ -5,13 +5,13 @@ Offline voice input for Android and iPhone, in a separate repository from
 
 ## Downloads
 
-**OwlWhisp Mobile 0.1.4** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.4).
+**OwlWhisp Mobile 0.1.5** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.5).
 
 | Platform | Application download | Installation |
 |---|---|---|
-| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.4/OwlWhisp-Mobile-0.1.4-android.apk)** | Signed APK; updates existing OwlWhisp installations |
-| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.4/OwlWhisp-Mobile-0.1.4-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
-| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.4/OwlWhisp-Mobile-0.1.4-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
+| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.5/OwlWhisp-Mobile-0.1.5-android.apk)** | Signed APK; updates existing OwlWhisp installations |
+| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.5/OwlWhisp-Mobile-0.1.5-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
+| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.5/OwlWhisp-Mobile-0.1.5-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
 
 Models download separately. The iPhone IPA is unsigned and is not a TestFlight/App Store
 release. A free Apple account can be used for personal signing. Checksums and build provenance
@@ -22,7 +22,7 @@ including Russian. Models download separately from the APK.
 
 ## Android
 
-Version 0.1.4 includes guided keyboard setup and a regular selectable voice IME.
+Version 0.1.5 includes guided keyboard setup and a regular selectable voice IME.
 [Voice panel preview](docs/validation/android-voice-panel-ready.png).
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
@@ -30,7 +30,8 @@ Version 0.1.4 includes guided keyboard setup and a regular selectable voice IME.
 - Microphone capture, editable transcript, clipboard copy and a voice input method (IME).
 - A circular microphone with smaller keyboard/settings buttons, recording timer and navigation-safe spacing.
 - Verified downloads, model selection, repair and deletion.
-- Local FLEURS EN/RU benchmark, WER, cold latency, RTF, sampled maximum PSS and JSON sharing.
+- Compact benchmark: clip counts by language, overall word error rate (WER), RTF and processing time.
+  Detailed per-clip results, transcripts and sampled maximum PSS remain in the shared JSON report.
 - Disposable inference process: immediate unloading by default. Parakeet can optionally stay
   ready for 30 seconds or 5 minutes. Memory pressure and leaving the app release idle sessions.
 - No account or startup service. An explicit dictation runs until Stop, Cancel or an interruption.

@@ -7,7 +7,6 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.Locale
-import kotlin.math.min
 
 object Benchmark {
     fun decodeWave(bytes: ByteArray): FloatArray {
@@ -38,43 +37,54 @@ object Benchmark {
         error("No WAV data")
     }
 
-    fun wordErrorRate(reference: String, hypothesis: String): Double {
-        fun words(text: String) = Regex("[\\p{L}\\p{N}]+").findAll(text.lowercase(Locale.ROOT).replace('\u0451', '\u0435')).map { it.value }.toList()
-        val expected = words(reference); val actual = words(hypothesis)
-        var previous = IntArray(actual.size + 1) { it }
-        for ((i, word) in expected.withIndex()) {
-            val current = IntArray(actual.size + 1); current[0] = i + 1
-            for (j in actual.indices) current[j + 1] = min(min(current[j] + 1, previous[j + 1] + 1),
-                previous[j] + if (word == actual[j]) 0 else 1)
-            previous = current
-        }
-        return previous.last().toDouble() / expected.size.coerceAtLeast(1)
+    fun wordErrorRate(reference: String, hypothesis: String): Double =
+        BenchmarkMetrics.wordErrors(reference, hypothesis).rate
+
+    fun fixtures(context: Context, languages: List<String>): List<JSONObject> {
+        val all = JSONArray(context.assets.open("benchmark/fixtures.json").bufferedReader().use { it.readText() })
+        return (0 until all.length()).map { all.getJSONObject(it) }.filter { it.getString("language") in languages }
     }
 
+    fun clipDescription(fixtures: List<JSONObject>): String =
+        fixtures.groupingBy { it.getString("language") }.eachCount().toSortedMap().entries.joinToString(" · ") { (language, count) ->
+            "$count " + Locale.forLanguageTag(language).getDisplayLanguage(Locale.ENGLISH) + if (count == 1) " clip" else " clips"
+        }.ifEmpty { "No matching clips" }
+
+    fun summary(rows: JSONArray): BenchmarkMetrics.Summary = BenchmarkMetrics.summarize((0 until rows.length()).map {
+        val row = rows.getJSONObject(it)
+        BenchmarkMetrics.Clip(row.getString("reference"), row.getString("transcript"),
+            row.getDouble("audio_s"), row.getDouble("elapsed_ms") / 1000.0)
+    })
+
+    fun summaryJSON(summary: BenchmarkMetrics.Summary): JSONObject = JSONObject()
+        .put("clips", summary.clipCount).put("word_errors", summary.wordErrors).put("reference_words", summary.referenceWords)
+        .put("wer", summary.wordErrorRate).put("audio_s", summary.audioSeconds).put("elapsed_s", summary.elapsedSeconds)
+        .put("rtf", summary.rtf)
+
     fun run(context: Context, repository: ModelRepository, client: InferenceClient, progress: (String) -> Unit): String {
-        val fixtures = JSONArray(context.assets.open("benchmark/fixtures.json").bufferedReader().use { it.readText() })
+        val fixtures = fixtures(context, repository.languages)
         val rows = JSONArray()
-        for (i in 0 until fixtures.length()) {
-            val fixture = fixtures.getJSONObject(i)
-            if (fixture.getString("language") !in repository.languages) continue
-            progress("Clip " + (rows.length() + 1) + ": " + fixture.getString("file"))
+        for (fixture in fixtures) {
+            progress("Clip " + (rows.length() + 1) + " of " + fixtures.size)
             val audio = context.assets.open("benchmark/" + fixture.getString("file")).use { decodeWave(it.readBytes()) }
             val result = client.transcribe(repository, audio)
             val duration = audio.size / 16000.0
-            rows.put(JSONObject().put("file", fixture.getString("file")).put("reference", fixture.getString("transcript"))
-                .put("transcript", result.text).put("wer", wordErrorRate(fixture.getString("transcript"), result.text))
+            val errors = BenchmarkMetrics.wordErrors(fixture.getString("transcript"), result.text)
+            rows.put(JSONObject().put("file", fixture.getString("file")).put("language", fixture.getString("language"))
+                .put("reference", fixture.getString("transcript")).put("transcript", result.text)
+                .put("wer", errors.rate).put("word_errors", errors.count).put("reference_words", errors.referenceWords)
                 .put("audio_s", duration).put("elapsed_ms", result.elapsedMs).put("rtf", result.elapsedMs / 1000.0 / duration)
                 .put("post_decode_pss_kib", result.pssKiB).put("sampled_peak_pss_kib", result.peakPssKiB))
             client.unload()
         }
         check(rows.length() > 0) { "No benchmark clips match this model's languages" }
         val report = JSONObject().put("model", repository.id).put("model_version", repository.manifest.getString("version"))
-            .put("app_version", "0.1.1").put("device", android.os.Build.MODEL).put("sdk", android.os.Build.VERSION.SDK_INT)
+            .put("app_version", context.packageManager.getPackageInfo(context.packageName, 0).versionName).put("device", android.os.Build.MODEL).put("sdk", android.os.Build.VERSION.SDK_INT)
             .put("abi", android.os.Build.SUPPORTED_ABIS.first()).put("created_at_ms", System.currentTimeMillis())
             .put("mode", "cold: hash verification + load + decode; 2 CPU threads; process unloaded after each clip")
             .put("memory_measurement", "Inference-process PSS sampled every 100 ms; sampled maximum, not a guaranteed allocation peak")
             .put("normalization", "Unicode letters and numbers, lowercase, punctuation removed, U+0451 folded to U+0435")
-            .put("rows", rows).toString(2)
+            .put("summary", summaryJSON(summary(rows))).put("rows", rows).toString(2)
         File(context.filesDir, "benchmark.json").writeText(report)
         return report
     }

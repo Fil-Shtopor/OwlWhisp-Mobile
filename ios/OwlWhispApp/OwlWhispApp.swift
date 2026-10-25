@@ -84,23 +84,28 @@ private struct ContentView: View {
             }.tabItem { Label("Models", systemImage: "square.stack.3d.up") }
             NavigationStack {
                 Form {
-                    Section("Local benchmark") {
-                        Text("Six short FLEURS EN/RU clips. Each clip uses a cold model load. Lower WER and RTF are better.")
-                        Button("Run selected model") { model.runBenchmark() }.disabled(!model.ready || model.phase != .idle)
+                    Section {
+                        Text(model.selectedModel?.name ?? "No model selected")
+                        Text(model.benchmarkClipDescription).font(.footnote).foregroundStyle(.secondary)
+                        Button("Run benchmark") { model.runBenchmark() }.disabled(!model.ready || model.phase != .idle)
                         Text(model.status)
                     }
-                    if !model.benchmarkReport.isEmpty {
-                        Section("JSON report") {
-                            ShareLink(item: model.benchmarkReport) { Label("Share", systemImage: "square.and.arrow.up") }
-                            Text(model.benchmarkReport).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                    if let summary = model.benchmarkSummary {
+                        Section("Latest result") {
+                            Text(model.benchmarkModelName)
+                            Text(String(summary.clipCount) + " clips · " + String(format: "%.2f s audio", summary.audioSeconds))
+                                .font(.footnote).foregroundStyle(.secondary)
+                            LabeledContent("Word error (WER)", value: String(format: "%.1f%%", summary.wordErrorRate * 100))
+                            LabeledContent("Speed (RTF)", value: String(format: "%.2f", summary.rtf))
+                            LabeledContent("Processing time", value: String(format: "%.2f s", summary.elapsedSeconds))
+                            ShareLink(item: model.benchmarkReport) { Label("Share report", systemImage: "square.and.arrow.up") }
                         }
                     }
-                    Section { Text("FLEURS, Conneau et al., 2022 · google/fleurs · CC-BY-4.0. A small comparison set for the same device.").font(.footnote) }
                 }.navigationTitle("Benchmark")
             }.tabItem { Label("Benchmark", systemImage: "chart.bar") }
             NavigationStack {
                 Form {
-                    Section("OwlWhisp Mobile 0.1.4") {
+                    Section("OwlWhisp Mobile 0.1.5") {
                         Text(UIDevice.current.model + " · iOS " + UIDevice.current.systemVersion)
                         Text("CPU · 2 threads · sherpa-onnx 1.13.6")
                         Text(model.selectedModel?.name ?? "No model selected")

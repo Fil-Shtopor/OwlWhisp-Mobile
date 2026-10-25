@@ -11,8 +11,8 @@ android {
         applicationId = "ai.owlwhisp.mobile"
         minSdk = 28
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.1.4"
+        versionCode = 6
+        versionName = "0.1.5"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
     compileOptions {
@@ -40,4 +40,5 @@ android {
 }
 dependencies {
     implementation(files("libs/sherpa-onnx.aar"))
+    testImplementation("junit:junit:4.13.2")
 }

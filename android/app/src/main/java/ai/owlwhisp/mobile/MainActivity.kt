@@ -80,6 +80,13 @@ class MainActivity : Activity() {
         setPadding(0, dp(8), 0, dp(8))
     }
     private fun title(value: String) { content.addView(label(value).apply { textSize = 23f; setTypeface(null, Typeface.BOLD) }) }
+    private fun metric(name: String, value: String) {
+        content.addView(LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            addView(label(name, true), LinearLayout.LayoutParams(0, -2, 1f))
+            addView(label(value).apply { setTypeface(null, Typeface.BOLD) })
+        })
+    }
     private fun button(value: String, action: () -> Unit): Button = Button(this).apply {
         text = value; isAllCaps = false; setTextColor(Palette.accent); setOnClickListener { action() }; actions.add(this)
     }.also { content.addView(it, LinearLayout.LayoutParams(-1, -2)) }
@@ -164,28 +171,28 @@ class MainActivity : Activity() {
             }
             3 -> {
                 content.addView(label(app.model.name))
-                content.addView(label("Six short English and Russian FLEURS clips. Only languages supported by the model are tested. Each clip uses a cold model load. WER measures errors; RTF is processing time divided by audio duration. Lower is better.", true))
+                content.addView(label(Benchmark.clipDescription(Benchmark.fixtures(this, app.model.languages)), true))
                 button("Run benchmark") { app.runBenchmark() }
                 val report = File(filesDir, "benchmark.json")
                 if (report.isFile) {
                     val json = org.json.JSONObject(report.readText())
-                    content.addView(label("Latest result: " + json.getString("model")))
-                    val rows = json.getJSONArray("rows")
-                    for (i in 0 until rows.length()) {
-                        val row = rows.getJSONObject(i)
-                        content.addView(label(row.getString("file") + "\n" + String.format(Locale.ROOT, "WER %.1f%% · RTF %.2f · %.2f s", row.getDouble("wer") * 100, row.getDouble("rtf"), row.getLong("elapsed_ms") / 1000.0) + " · PSS max " + row.optInt("sampled_peak_pss_kib") / 1024 + " MiB"))
-                        content.addView(label(row.getString("transcript"), true))
-                    }
-                    button("Share JSON report") {
+                    val summary = Benchmark.summary(json.getJSONArray("rows"))
+                    title("Latest result")
+                    val modelID = json.getString("model")
+                    content.addView(label(app.models.firstOrNull { it.id == modelID }?.name ?: modelID))
+                    content.addView(label(String.format(Locale.ROOT, "%d clips · %.2f s audio", summary.clipCount, summary.audioSeconds), true))
+                    metric("Word error (WER)", String.format(Locale.ROOT, "%.1f%%", summary.wordErrorRate * 100))
+                    metric("Speed (RTF)", String.format(Locale.ROOT, "%.2f", summary.rtf))
+                    metric("Processing time", String.format(Locale.ROOT, "%.2f s", summary.elapsedSeconds))
+                    button("Share report") {
                         startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_TEXT, report.readText()), "OwlWhisp report"))
                     }
-                    button("Copy JSON report") { copy(report.readText()) }
+                    button("Copy report") { copy(report.readText()) }
                 }
-                content.addView(label("FLEURS: Conneau et al., 2022 · google/fleurs · CC-BY-4.0. A small comparison set, not a full-dataset accuracy evaluation.", true))
             }
             4 -> {
                 val memory = Debug.MemoryInfo(); Debug.getMemoryInfo(memory)
-                content.addView(label("OwlWhisp Mobile 0.1.4\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
+                content.addView(label("OwlWhisp Mobile 0.1.5\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
                     "\nUI PSS: " + memory.totalPss / 1024 + " MiB\nModel process: " + if (app.client.loaded) "running" else "unloaded"))
                 content.addView(label(app.lastMetrics, true))
                 button("Refresh") { showTab(4) }
