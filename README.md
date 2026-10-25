@@ -5,13 +5,13 @@ Offline voice input for Android and iPhone, in a separate repository from
 
 ## Downloads
 
-**OwlWhisp Mobile 0.1.2** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.2).
+**OwlWhisp Mobile 0.1.3** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.3).
 
 | Platform | Application download | Installation |
 |---|---|---|
-| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.2/OwlWhisp-Mobile-0.1.2-android.apk)** | Signed APK; updates existing OwlWhisp installations |
-| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.2/OwlWhisp-Mobile-0.1.2-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
-| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.2/OwlWhisp-Mobile-0.1.2-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
+| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.3/OwlWhisp-Mobile-0.1.3-android.apk)** | Signed APK; updates existing OwlWhisp installations |
+| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.3/OwlWhisp-Mobile-0.1.3-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
+| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.3/OwlWhisp-Mobile-0.1.3-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
 
 Models download separately. The iPhone IPA is unsigned and is not a TestFlight/App Store
 release. A free Apple account can be used for personal signing. Checksums and build provenance
@@ -22,9 +22,8 @@ including Russian. Models download separately from the APK.
 
 ## Android
 
-Version 0.1.2 includes guided keyboard setup and a regular selectable voice IME.
-[Voice panel preview](docs/validation/android-voice-panel-ready.png) /
-[recording state](docs/validation/android-voice-panel-recording.png).
+Version 0.1.3 includes guided keyboard setup and a regular selectable voice IME.
+[Voice panel preview](docs/validation/android-voice-panel-ready.png).
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
 - OwlWhisp's owl icon and dark palette.
@@ -34,7 +33,8 @@ Version 0.1.2 includes guided keyboard setup and a regular selectable voice IME.
 - Local FLEURS EN/RU benchmark, WER, cold latency, RTF, sampled maximum PSS and JSON sharing.
 - Disposable inference process: immediate unloading by default. Parakeet can optionally stay
   ready for 30 seconds or 5 minutes. Memory pressure and leaving the app release idle sessions.
-- No account, cloud transcription, startup service or persistent background microphone.
+- No account or startup service. An explicit dictation runs until Stop, Cancel or an interruption.
+- Live phrase updates and recording across Settings, app switching and screen lock.
 - No recording time limit by default; optional 1, 5 or 15 minute auto-stop in Settings.
 
 | Model | Languages | Download | Runtime |
@@ -54,7 +54,7 @@ app provides its own voice IME. Android 9/API 28+; ARM64 phones and x86_64 emula
 
 ## iOS
 
-SwiftUI app with the same five sections, branding, ordinary Parakeet, foreground microphone
+SwiftUI app with the same five sections, branding, ordinary Parakeet, background-capable microphone
 capture/resampling, verified downloads, local benchmark, copy and share. Swift tests and an
 iOS device archive and simulator build pass in GitHub Actions. It has not been tested on a physical iPhone.
 Redux, Whistle and Phonon adapters and a keyboard extension are not yet implemented on iOS.
@@ -104,17 +104,21 @@ Supply --adb with the SDK adb path when it is not on PATH.
 Keep the app open while downloading or benchmarking. Downloads are not resumable.
 
 Recording has **no time limit by default** on Android and iOS. Settings can optionally stop
-after 1, 5 or 15 minutes. It still stops/cancels when its capture surface leaves the foreground.
-Recognition starts when you stop. Private PCM16 audio is temporarily stored on disk at about
+after 1, 5 or 15 minutes. Explicitly started recording continues through Settings, app switching and screen lock.
+Text appears in short phrases while recording continues. The first update needs about eight
+seconds of audio plus model loading/decoding; this is not a word-by-word streaming model. Private PCM16 audio is temporarily stored on disk at about
 **1.83 MiB per minute**; the complete recording is not retained in RAM. Audio is deleted after
 processing/cancellation, and abandoned recordings are removed at the next app start.
+On Android, a recording notification offers Stop/Cancel. Leaving a text editor detaches live
+insertion without stopping capture; the transcript remains in Dictate. iOS uses its audio
+background mode; finite background time after Stop may defer the final tail until returning
+to the app. Physical-phone background behavior still needs validation.
 
-Recognition reads at most 30 seconds of audio at a time and prefers pauses near chunk
+Live recognition reads at most eight seconds of audio at a time and prefers pauses near chunk
 boundaries. Continuous speech uses a short overlap with duplicate-word stitching. These are
 processing chunks, not a recording-duration limit. Boundary decisions can affect punctuation
 or words in continuous speech. Model/runtime memory is separate from the audio buffer and
-still depends on the model and device. There is no streaming partial transcript or always-on
-background recording.
+still depends on the model and device. Text updates after each phrase decode. Recording starts only from an explicit user action.
 
 ## Layout and license
 

@@ -63,7 +63,6 @@ class VoiceInputPanel(
         val brand = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
         brand.addView(ImageView(context).apply { setImageResource(R.drawable.owlwhisp); importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO }, LayoutParams(dp(24), dp(24)))
         brand.addView(text(13f, Palette.text).apply { text = "OwlWhisp"; gravity = Gravity.START or Gravity.CENTER_VERTICAL; setTypeface(null, Typeface.BOLD); setPadding(dp(8), 0, 0, 0) }, LayoutParams(0, dp(28), 1f))
-        brand.addView(text(10f, Color.rgb(121, 218, 215)).apply { text = "ON DEVICE"; letterSpacing = 0.12f; setTypeface(null, Typeface.BOLD) })
         addView(brand, LayoutParams(-1, dp(28)))
         headline.apply { setPadding(0, dp(8), 0, dp(2)); accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_POLITE }
         addView(headline, LayoutParams(-1, -2))
@@ -98,17 +97,17 @@ class VoiceInputPanel(
         if (listening != recording) {
             recording = listening
             removeCallbacks(updateClock)
-            if (listening) { startedAt = SystemClock.elapsedRealtime(); post(updateClock) }
+            if (listening) { startedAt = (context.applicationContext as? OwlWhispApp)?.recordingStartedAt?.takeIf { it > 0 } ?: SystemClock.elapsedRealtime(); post(updateClock) }
         }
         headline.text = when {
             listening -> "Listening"
-            busy -> "Working on device"
+            busy -> "Finishing dictation"
             !ready -> "Set up your voice input"
             state.phase == Phase.ERROR -> "Try again"
             else -> "Ready to dictate"
         }
         detail.text = when {
-            listening -> "Tap to finish and insert your words"
+            listening -> state.transcript.takeLast(180).ifBlank { "Speak. Text appears as you dictate." }
             !microphoneAllowed -> "Allow the microphone in Settings"
             !modelReady -> "Download a model in Settings"
             busy || state.phase == Phase.ERROR -> state.message

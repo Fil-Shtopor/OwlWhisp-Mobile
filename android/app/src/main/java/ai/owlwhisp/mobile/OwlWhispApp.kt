@@ -3,12 +3,14 @@ package ai.owlwhisp.mobile
 import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
+import android.content.Intent
+import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import java.util.concurrent.Executors
 
 enum class Phase { IDLE, DOWNLOADING, RECORDING, PROCESSING, BENCHMARK, ERROR }
-data class AppState(val phase: Phase, val message: String, val progress: Int = 0)
+data class AppState(val phase: Phase, val message: String, val progress: Int = 0, val transcript: String = "")
 
 class OwlWhispApp : Application() {
     val worker = Executors.newSingleThreadExecutor()
@@ -18,15 +20,23 @@ class OwlWhispApp : Application() {
     val model: ModelRepository get() = models.firstOrNull { it.id == preferences.getString("model", "") } ?: models.first()
     val client by lazy { InferenceClient(this) }
     private val listeners = mutableSetOf<(AppState) -> Unit>()
-    var state = AppState(Phase.IDLE, "Your voice stays on your device")
+    var state = AppState(Phase.IDLE, "Ready")
         private set
     private var owner: Any? = null
     private var recorder: AudioRecorder? = null
     private var deliver: ((String) -> Unit)? = null
+    private var partial: ((String) -> Unit)? = null
+    private var captureService: RecordingService? = null
+    var draftText = ""
+    var sessionText = ""
+        private set
+    var recordingStartedAt = 0L
+        private set
     @Volatile private var generation = 0L
     var lastMetrics = ""
         private set
     val busy get() = state.phase in setOf(Phase.DOWNLOADING, Phase.RECORDING, Phase.PROCESSING, Phase.BENCHMARK)
+    val recordingActive get() = state.phase == Phase.RECORDING || captureService != null
     val warmSeconds get() = preferences.getInt("warm_seconds", 0)
     val recordingLimitSeconds get() = preferences.getInt("recording_limit_seconds", 0).takeIf { it in RecordingPolicy.limits } ?: 0
     fun setRecordingLimit(seconds: Int) {
@@ -99,7 +109,7 @@ class OwlWhispApp : Application() {
             finally { client.unload() }
         }
     }
-    fun start(owner: Any, onResult: (String) -> Unit) {
+    fun start(owner: Any, onPartial: (String) -> Unit = {}, onResult: (String) -> Unit) {
         if (busy) return
         if (!model.present()) { publish(AppState(Phase.ERROR, "Download a model first")); return }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -107,57 +117,110 @@ class OwlWhispApp : Application() {
         }
         main.removeCallbacks(idleRelease)
         val token = ++generation
-        this.owner = owner; deliver = onResult
+        this.owner = owner; deliver = onResult; partial = onPartial; sessionText = ""
+        recordingStartedAt = SystemClock.elapsedRealtime()
+        publish(AppState(Phase.RECORDING, "Listening"))
         try {
-            recorder = AudioRecorder(this, recordingLimitSeconds,
-                onLimit = { main.post { if (generation == token) stop(owner) } },
-                onError = { message -> main.post { if (generation == token) { cancel(owner); publish(AppState(Phase.ERROR, message)) } } })
-                .also { it.start() }
-            publish(AppState(Phase.RECORDING, "Listening - " + RecordingPolicy.label(recordingLimitSeconds)))
-        } catch (failure: Exception) {
-            this.owner = null; deliver = null; recorder = null
-            publish(AppState(Phase.ERROR, failure.message ?: "Could not start the microphone"))
-        }
+            startForegroundService(Intent(this, RecordingService::class.java)
+                .setAction(RecordingService.START).putExtra("generation", token))
+        } catch (error: Exception) { captureFailed(token, error.message ?: "Could not start recording") }
     }
-    fun stop(requester: Any) {
-        if (owner !== requester || state.phase != Phase.RECORDING) return
-        val audio = recorder ?: return
-        val token = generation; val callback = deliver; val repository = model
-        recorder = null; audio.requestStop()
-        publish(AppState(Phase.PROCESSING, "Transcribing on device…"))
-        worker.execute {
-            try {
-                val file = audio.finish()
-                val result = client.transcribeRecording(repository, file, cancelled = { generation != token }) { percent ->
-                    main.post { if (generation == token) publish(AppState(Phase.PROCESSING, "Transcribing on device: $percent%")) }
-                }
-                if (warmSeconds == 0 || repository.engine != "sherpa") client.unload()
-                main.post {
-                    if (generation == token) {
-                        owner = null; deliver = null
-                        lastMetrics = "Last run: " + result.elapsedMs + " ms · PSS max " + result.peakPssKiB / 1024 + " MiB"
-                        publish(AppState(Phase.IDLE, if (result.text.isBlank()) "No speech detected" else "Ready"))
-                        callback?.invoke(result.text)
-                        if (warmSeconds > 0) main.postDelayed(idleRelease, warmSeconds * 1000L)
+    internal val capturedSamples get() = recorder?.samplesWritten ?: 0L
+    internal fun ownsCaptureService(service: RecordingService) = captureService === service
+    internal fun acceptsCapture(token: Long) = generation == token && state.phase == Phase.RECORDING
+    internal fun beginCapture(service: RecordingService, token: Long) {
+        if (!acceptsCapture(token)) { service.finish(); return }
+        captureService = service
+        val repository = model; val base = draftText
+        try {
+            val audio = AudioRecorder(this, recordingLimitSeconds,
+                onLimit = { main.post { if (generation == token) stopCurrent() } },
+                onError = { message -> main.post { captureFailed(token, message) } })
+            recorder = audio; audio.start()
+            worker.execute {
+                val started = System.nanoTime()
+                var text = ""; var peak = 0
+                try {
+                    LiveAudioChunks(audio.file).use { chunks ->
+                        while (generation == token) {
+                            val complete = audio.complete
+                            val chunk = chunks.next(audio.samplesWritten, complete)
+                            if (chunk == null) {
+                                if (complete) break
+                                Thread.sleep(200); continue
+                            }
+                            val part = client.transcribe(repository, chunk.samples)
+                            if (generation != token) break
+                            text = AudioChunks.appendTranscript(text, part.text, chunk.overlapsPrevious)
+                            peak = maxOf(peak, part.peakPssKiB)
+                            val update = text
+                            main.post {
+                                if (generation == token) {
+                                    sessionText = update; draftText = listOf(base, update).filter { it.isNotBlank() }.joinToString(" ")
+                                    partial?.invoke(update)
+                                    publish(state.copy(transcript = update))
+                                }
+                            }
+                        }
                     }
-                }
-            } catch (failure: Throwable) {
-                client.unload()
-                main.post { if (generation == token) {
-                    owner = null; deliver = null
-                    publish(AppState(Phase.ERROR, failure.message ?: "Could not transcribe the recording"))
-                } }
-            } finally { audio.discard() }
+                    audio.finish()
+                    if (generation == token) {
+                        if (warmSeconds == 0 || repository.engine != "sherpa") client.unload()
+                        val result = text; val elapsed = (System.nanoTime() - started) / 1_000_000
+                        main.post {
+                            if (generation == token) {
+                                val callback = deliver
+                                releaseCapture()
+                                lastMetrics = "Last run: $elapsed ms; PSS max " + peak / 1024 + " MiB"
+                                publish(AppState(Phase.IDLE, if (result.isBlank()) "No speech detected" else "Ready", transcript = result))
+                                callback?.invoke(result)
+                                if (warmSeconds > 0) main.postDelayed(idleRelease, warmSeconds * 1000L)
+                            }
+                        }
+                    }
+                } catch (error: Throwable) {
+                    client.unload()
+                    main.post { captureFailed(token, error.message ?: "Could not transcribe the recording") }
+                } finally { audio.discard() }
+            }
+        } catch (error: Exception) {
+            recorder?.discard()
+            captureFailed(token, error.message ?: "Could not start the microphone")
         }
     }
-    fun cancel(requester: Any) {
-        if (owner !== requester) return
+    fun stop(requester: Any) { if (isOwner(requester)) stopCurrent() }
+    fun stopCurrent() {
+        if (state.phase != Phase.RECORDING) return
+        // The service may still be starting; invalidate that start instead of leaving an orphan.
+        if (recorder == null) { cancelCurrent(); return }
+        recorder?.requestStop()
+        publish(state.copy(phase = Phase.PROCESSING, message = "Finishing dictation"))
+        captureService?.processing()
+    }
+    fun cancel(requester: Any) { if (isOwner(requester)) cancelCurrent() }
+    fun cancelCurrent() {
+        if (!recordingActive) return
         generation++
         val audio = recorder
-        recorder = null; owner = null; deliver = null
-        audio?.requestStop()
+        audio?.requestStop(); releaseCapture()
         worker.execute { try { audio?.discard() } finally { client.unload() } }
-        publish(AppState(Phase.IDLE, "Recording cancelled"))
+        publish(AppState(Phase.IDLE, "Recording cancelled", transcript = sessionText))
+    }
+    /** Losing a view or editor detaches delivery, never the microphone or recovered draft. */
+    fun detach(requester: Any) {
+        if (owner === requester) { owner = null; deliver = null; partial = null }
+    }
+    private fun releaseCapture() {
+        recorder = null; owner = null; deliver = null; partial = null
+        captureService?.finish(); captureService = null
+    }
+    internal fun captureFailed(token: Long, message: String) {
+        if (generation != token) return
+        cancelCurrent()
+        publish(AppState(Phase.ERROR, message, transcript = sessionText))
+    }
+    internal fun captureServiceLost(service: RecordingService) {
+        if (captureService === service) captureFailed(generation, "Recording interrupted")
     }
     fun isOwner(requester: Any) = owner === requester
     override fun onTrimMemory(level: Int) {

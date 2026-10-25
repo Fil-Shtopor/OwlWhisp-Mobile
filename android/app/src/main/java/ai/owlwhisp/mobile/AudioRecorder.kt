@@ -14,8 +14,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 class AudioRecorder(private val context: Context, private val limitSeconds: Int,
     private val onLimit: () -> Unit, private val onError: (String) -> Unit) {
     private val running = AtomicBoolean(false)
-    private val file = File(context.cacheDir, "recording-" + UUID.randomUUID() + ".pcm16")
+    val file = File(context.cacheDir, "recording-" + UUID.randomUUID() + ".pcm16")
     @Volatile private var count = 0L
+    val samplesWritten get() = count
+    @Volatile var complete = false
+        private set
     @Volatile private var failure: Exception? = null
     private var audio: AudioRecord? = null
     private var thread: Thread? = null
@@ -30,9 +33,12 @@ class AudioRecorder(private val context: Context, private val limitSeconds: Int,
         val record = AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, 16000,
             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(minimum, 8192))
         if (record.state != AudioRecord.STATE_INITIALIZED) { record.release(); error("Microphone unavailable") }
-        audio = record; running.set(true)
-        try { record.startRecording() } catch (error: Exception) {
-            running.set(false); audio = null; record.release(); throw error
+        audio = record
+        try {
+            check(file.createNewFile()) { "Could not create the recording file" }
+            running.set(true); record.startRecording()
+        } catch (error: Exception) {
+            running.set(false); audio = null; record.release(); complete = true; file.delete(); throw error
         }
         thread = Thread({
             try {
@@ -45,14 +51,14 @@ class AudioRecorder(private val context: Context, private val limitSeconds: Int,
                         for (i in 0 until size) {
                             bytes[2 * i] = buffer[i].toByte(); bytes[2 * i + 1] = (buffer[i].toInt() shr 8).toByte()
                         }
-                        output.write(bytes, 0, size * 2); count += size
+                        output.write(bytes, 0, size * 2); output.flush(); count += size
                     }
                 }
                 if (running.getAndSet(false)) onLimit()
             } catch (error: Exception) {
                 failure = error
                 if (running.getAndSet(false)) onError(error.message ?: "Could not save microphone audio")
-            } finally { record.release() }
+            } finally { record.release(); complete = true }
         }, "owlwhisp-microphone").also { it.start() }
     }
     fun requestStop() {

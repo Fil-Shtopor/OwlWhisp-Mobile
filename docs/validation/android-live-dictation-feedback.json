@@ -1,0 +1,69 @@
+{
+  "recorded_on": "2026-10-25",
+  "status": "passed",
+  "build": "local uncommitted feedback fixes; version metadata remains 0.1.2",
+  "platform": "Pixel 6 Android API 34 x86_64 emulator; 4 GiB RAM",
+  "capture_checks": [
+    "Settings navigation",
+    "Activity recreation and owner destruction",
+    "Home",
+    "screen lock",
+    "notification Stop",
+    "recording notification/service cleanup",
+    "private capture file cleanup"
+  ],
+  "live_audio_checks": [
+    "growing prefix waits for sufficient audio",
+    "bounded eight-second windows",
+    "disk backlog drained without gaps",
+    "short final tail",
+    "no final-overlap replay"
+  ],
+  "recognition": {
+    "audio_seconds": 24,
+    "updates_before_stop": 3,
+    "wer": 0.15,
+    "text": "There are many beaches due to often straddling of two harbors. The most popular ones are in three areas. There are many beaches due to often straddling of two harbors, the most popular ones are in three areas. There are many beaches due to often straddling of two harbors. The most popular ones are in three areas.",
+    "peak_pss_kib": 813771
+  },
+  "ime": {
+    "status": "passed",
+    "host_package": "com.google.android.settings.intelligence",
+    "model": "real verified ordinary Parakeet",
+    "checks": [
+      "voice IME started microphone foreground service from a different application",
+      "Settings gear opened app Settings without cancelling capture",
+      "private recording file kept growing after editor detached"
+    ],
+    "ready_layout": {
+      "panel": "0,1617,1080,2274",
+      "microphone": "419,1908,660,2149",
+      "keyboard": "143,1966,269,2092",
+      "settings": "810,1966,936,2092",
+      "navigation_bottom": 126,
+      "bottom_padding": 42,
+      "decor": "0,1617,1080,2400",
+      "recording": false,
+      "microphone_enabled": true
+    }
+  },
+  "ios_status": "Source and Swift regression tests added; current changes not compiled/tested because macOS CI requires an authorized push. Physical iPhone unvalidated.",
+  "test_environment_notes": [
+    "An unrelated emulator System UI ANR was dismissed.",
+    "The initial test reused a NEW_TASK Activity and waited for an instance that Android did not create. The corrected helper creates a separate test task; final checks passed."
+  ],
+  "signed_preview": {
+    "signature": "matches published releases",
+    "release_build_and_lint": "passed",
+    "alignment_16k": "passed",
+    "debug_instrumentation": "absent",
+    "update": {
+      "status": "passed",
+      "from": "published signed 0.1.2",
+      "to": "local signed feedback preview (same 0.1.2 metadata)",
+      "mode": "in-place install -r on disposable API 34 emulator",
+      "preserved": "5-minute recording preference",
+      "restored": "No time limit"
+    }
+  }
+}

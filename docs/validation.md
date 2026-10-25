@@ -1,3 +1,33 @@
+# 0.1.3 feedback fixes: background recording and live phrases
+
+Recorded 2026-10-25 on the isolated Pixel 6 API 34 x86_64 emulator (4 GiB RAM).
+The local Android debug and signed release builds and lint passed. The signed preview uses
+the existing release certificate, passes 16-KiB alignment, excludes debug instrumentation and
+installs over the published signed 0.1.2 APK while preserving its recording-limit preference.
+The initial local preview retained 0.1.2 metadata; the release uses 0.1.3/versionCode 4. The real foreground microphone test passed
+Settings navigation, Activity recreation and owner destruction, Home, screen lock, stopping
+through the actual notification PendingIntent, service/notification cleanup and temporary
+audio deletion. A separate real-IME check started the microphone in Android Settings'
+search editor (a different app), opened OwlWhisp Settings using the gear and verified that
+the private recording file kept growing after editor delivery detached.
+
+A growing 24-second PCM16 file containing three quiet FLEURS English utterances produced
+three non-empty updates before completion, using real ordinary Parakeet weights and the
+production live file cursor/inference client. WER was 15%; sampled peak inference PSS was
+813,771 KiB. Cursor checks covered waiting for written samples, bounded eight-second windows,
+disk backlog, short final tails and avoiding a replay of the final overlap. These are emulator
+observations, not phone latency/battery claims. See validation/android-live-dictation-feedback.json.
+
+Reproduce after installing the debug APK, granting microphone/notification permissions and
+staging the verified default Parakeet files:
+
+    adb -s emulator-5580 shell am instrument -w ai.owlwhisp.mobile/ai.owlwhisp.mobile.LiveDictationInstrumentation
+
+The iOS changes include Swift regression cases for growing files, bounded backlog and final
+overlap handling. The release candidate is validated by macOS CI for Swift tests, an unsigned
+device archive and the simulator build. Physical-iPhone background recording remains
+unvalidated. The sections below preserve earlier-version validation measurements.
+
 # 0.1.2 recording policy
 
 The release records without a time limit by default on both platforms, with optional 1, 5 and

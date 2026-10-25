@@ -61,4 +61,48 @@ final class PCM16ChunksTests: XCTestCase {
         XCTAssertEqual(RecordingPolicy.limits.first, 0)
         XCTAssertEqual(RecordingPolicy.label(0), "No time limit")
     }
+    func testLiveCursorWaitsForAudioAndDoesNotReplayItsFinalOverlap() throws {
+        let url = try recording(seconds: 8, value: 16000)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let reader = try LivePCM16Chunks(url: url)
+        XCTAssertNil(try reader.next(availableSamples: 7 * 16000, complete: false))
+        let first = try XCTUnwrap(reader.next(availableSamples: 8 * 16000, complete: false))
+        XCTAssertEqual(first.end, 8 * 16000)
+        XCTAssertFalse(first.overlapsPrevious)
+        XCTAssertNil(try reader.next(availableSamples: 8 * 16000, complete: true))
+    }
+
+    func testLiveCursorDrainsBacklogAndShortTailWithoutGaps() throws {
+        let url = try recording(seconds: 20, value: 16000)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let reader = try LivePCM16Chunks(url: url)
+        let first = try XCTUnwrap(reader.next(availableSamples: 8 * 16000, complete: false))
+        XCTAssertEqual(first.end, 8 * 16000)
+        var end = first.end
+        var count = 1
+        while let chunk = try reader.next(availableSamples: 20 * 16000, complete: true) {
+            XCTAssertLessThanOrEqual(chunk.samples.count, 8 * 16000)
+            XCTAssertLessThanOrEqual(chunk.start, end)
+            XCTAssertGreaterThan(chunk.end, end)
+            XCTAssertTrue(chunk.overlapsPrevious)
+            end = chunk.end; count += 1
+        }
+        XCTAssertEqual(end, 20 * 16000); XCTAssertEqual(count, 3)
+        XCTAssertNil(try reader.next(availableSamples: end, complete: true))
+    }
+
+    func testLiveSnapshotPublishesOnlyWrittenAudioAndCompletion() throws {
+        let url = try recording(seconds: 1, value: 0)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let live = LiveRecording(url: url)
+        XCTAssertFalse(live.snapshot().complete)
+        live.update(samples: 16000)
+        live.finish()
+        XCTAssertEqual(live.snapshot().samples, 16000)
+        XCTAssertTrue(live.snapshot().complete)
+        let reader = try LivePCM16Chunks(url: url)
+        XCTAssertEqual(try reader.next(availableSamples: 16000, complete: true)?.samples.count, 16000)
+        XCTAssertNil(try reader.next(availableSamples: 16000, complete: true))
+    }
+
 }

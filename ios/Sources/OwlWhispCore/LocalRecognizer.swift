@@ -48,4 +48,29 @@ public actor LocalRecognizer {
         }
         return text
     }
+    /// Parakeet is an offline model; decode short phrases while capture continues.
+    public func transcribeLive(store: ModelStore, recording: LiveRecording,
+                               partial: @Sendable (String) -> Void) async throws -> String {
+        let chunks = try LivePCM16Chunks(url: recording.url)
+        var recognizer: SherpaOnnxOfflineRecognizer?
+        var text = ""
+        while true {
+            try Task.checkCancellation()
+            let snapshot = recording.snapshot()
+            guard let chunk = try chunks.next(availableSamples: snapshot.samples, complete: snapshot.complete) else {
+                if snapshot.complete { break }
+                try await Task.sleep(nanoseconds: 200_000_000); continue
+            }
+            let audio = try prepareAudio(chunk.samples)
+            if !audio.isEmpty {
+                if recognizer == nil { recognizer = try await load(store: store) }
+                let part = recognizer!.decode(samples: audio, sampleRate: 16_000).text
+                try Task.checkCancellation()
+                text = PCM16Chunks.appendTranscript(text, part, overlaps: chunk.overlapsPrevious)
+            }
+            partial(text)
+        }
+        return text
+    }
+
 }

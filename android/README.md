@@ -16,7 +16,7 @@ selection. Enable OwlWhisp in system keyboard settings, then choose it with the 
 On Samsung: Settings > General management > Keyboard list and default. Enable the keyboard
 button on the navigation bar so you can switch while a text field is focused. Samsung's own
 Voice input provider page may offer only Samsung and Google; use the system keyboard list.
-The IME settings shortcut also opens this setup screen. No ADB commands are needed.
+The IME settings shortcut opens Settings without stopping an active dictation. No ADB commands are needed.
 
 The voice panel has a large circular microphone in the center, a smaller keyboard button on
 the left and settings on the right. Recording switches the microphone to a stop icon and
@@ -30,9 +30,13 @@ with and without a reserved navigation area; no recognition model is used by thi
 
 Capture has no time limit by default. Choose No time limit, 1 minute, 5 minutes or 15 minutes
 in Settings > Recording. PCM16 is written to a private cache file, about 1.83 MiB per minute,
-and read in chunks of at most 30 seconds after stopping. Pause boundaries are preferred;
+and read in chunks of at most eight seconds while capture continues. Pause boundaries are preferred;
 continuous speech uses a 500 ms overlap with duplicate-word stitching. Only bounded audio
-buffers are held in RAM. Leaving the capture surface cancels delivery. Temporary recordings
+buffers are held in RAM. A microphone foreground service and recording notification keep an
+explicitly started capture alive across Settings, Activity recreation, Home and screen lock.
+The notification offers Stop/Cancel; the service and its wake lock end with that session.
+Live phrases update the original editor's composition. Leaving the editor detaches automatic
+insertion; the complete transcript remains in Dictate and is never sent to a different field. Temporary recordings
 are deleted after completion/cancellation or recovered at the next app start. No audio is uploaded.
 
 See ../docs/validation.md for emulator checks, known limits and raw benchmark results.

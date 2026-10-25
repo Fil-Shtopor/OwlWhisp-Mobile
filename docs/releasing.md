@@ -1,6 +1,6 @@
 # Releasing mobile apps
 
-Version 0.1.2 uses versionCode 3, min SDK 28 and target SDK 36. The GitHub release contains
+Version 0.1.3 uses versionCode 4, min SDK 28 and target SDK 36. The GitHub release contains
 a universal ARM64/x86_64 APK; models are downloaded separately.
 
 1. Run scripts/build_android.py and appropriate emulator checks.

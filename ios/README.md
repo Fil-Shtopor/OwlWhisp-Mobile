@@ -4,7 +4,8 @@ SwiftUI app and OwlWhispCore Swift package. Minimum iOS 16.0.
 
 The app has OwlWhisp branding and the same five sections as desktop, ordinary Parakeet INT8,
 verified downloads/deletion, microphone capture, copy/share and a six-clip FLEURS benchmark.
-Model sessions are scoped to one job. Background/interruption invalidates capture and delivery.
+Model sessions are scoped to one job. Active recording continues through app switching and
+screen lock using the audio background mode. An audio interruption finishes captured audio.
 
 ## Release downloads
 
@@ -73,8 +74,12 @@ by copy or share into another app.
 
 Weights are CC-BY-4.0 and download separately. Recording has no time limit by default; Settings offers optional 1, 5 and 15 minute limits.
 Private PCM16 audio is streamed to a temporary file, about 1.83 MiB per minute, and read back
-in chunks of at most 30 seconds. Pause boundaries are preferred; continuous speech uses a
+in chunks of at most eight seconds while recording continues. Pause boundaries are preferred; continuous speech uses a
 500 ms overlap with duplicate-word stitching. The complete recording is not retained in RAM.
+Text appears in short phrases after each decode, not per word; the initial eight-second
+window and model latency determine the first update. Stop drains any remaining audio.
+Finite iOS background execution may suspend tail processing until the app returns; force
+termination is not resumable. Physical-iPhone background and lock behavior remain unvalidated.
 Audio is deleted after completion/cancellation, and abandoned files are cleaned at startup. The app sends neither audio nor transcripts to a transcription service.
 
 References: [Apple device distribution](https://developer.apple.com/documentation/xcode/distributing-your-app-to-registered-devices),

@@ -14,8 +14,8 @@ struct OwlWhispApp: App {
                 .preferredColorScheme(.dark)
                 .tint(Color(red: 0.54, green: 0.71, blue: 0.98))
                 .task { await model.refresh() }
-                .onChange(of: scenePhase) { phase in if phase != .active { model.backgrounded() } }
-                .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { _ in model.backgrounded() }
+                .onChange(of: scenePhase) { phase in if phase == .background { model.backgrounded() } }
+                .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { model.audioInterrupted($0) }
         }
     }
 }
@@ -33,21 +33,20 @@ private struct ContentView: View {
                             Image("OwlWhisp").resizable().scaledToFit().frame(width: 52, height: 52)
                             Text("OwlWhisp").font(.largeTitle.bold())
                         }
-                        Text("Your voice stays on your device").foregroundStyle(.secondary)
                         Text(model.status).accessibilityAddTraits(.updatesFrequently)
                         Button(action: model.toggleRecording) {
-                            Label(model.phase == .recording ? "Stop and transcribe" : "Start dictation",
+                            Label(model.phase == .recording ? "Stop dictation" : "Start dictation",
                                   systemImage: model.phase == .recording ? "stop.fill" : "mic.fill")
                                 .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
                         }.buttonStyle(.borderedProminent).disabled(!model.ready || (model.phase != .idle && model.phase != .recording))
-                        TextEditor(text: $model.text).frame(minHeight: 200).padding(8)
+                        TextEditor(text: $model.text).frame(minHeight: 200).padding(8).disabled(model.phase != .idle)
                             .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
                         HStack {
                             Button("Copy") { UIPasteboard.general.string = model.text }
                             ShareLink(item: model.text) { Label("Share", systemImage: "square.and.arrow.up") }
-                            Button("Clear") { model.text = "" }
+                            Button("Clear") { model.text = "" }.disabled(model.phase != .idle)
                         }.disabled(model.text.isEmpty)
-                        Text("Recording limit: " + RecordingPolicy.label(model.recordingLimitSeconds) + ". Audio is not uploaded.").font(.footnote).foregroundStyle(.secondary)
+                        Text("Recording limit: " + RecordingPolicy.label(model.recordingLimitSeconds)).font(.footnote).foregroundStyle(.secondary)
                     }.padding(20)
                 }.background(background).navigationTitle("Dictate").navigationBarTitleDisplayMode(.inline)
             }.tabItem { Label("Dictate", systemImage: "mic") }
@@ -59,10 +58,10 @@ private struct ContentView: View {
                                 Text(RecordingPolicy.label(seconds)).tag(seconds)
                             }
                         }.disabled(model.phase != .idle)
-                        Text("No time limit by default. Audio is saved temporarily on device and transcribed in short sections after you stop.")
+                        Text("Choose when recording stops automatically. Text appears during dictation.")
                     }
                     Section("Memory") {
-                        Text("The model is released after every recording. There is no persistent background process.")
+                        Text("The model is released after each dictation.")
                         Button("Unload model") { model.unload() }.disabled(model.phase != .idle)
                     }
                     Section("Text input") {
@@ -79,7 +78,7 @@ private struct ContentView: View {
                 Form {
                     Section("Parakeet TDT 0.6B v3") {
                         Text("Ordinary Parakeet INT8 · 25 languages, including Russian · 639 MiB")
-                        Text(model.ready ? "On device" : "Not downloaded")
+                        Text(model.ready ? "Downloaded" : "Not downloaded")
                         if model.phase == .downloading { ProgressView(value: model.progress) }
                         Button(model.ready ? "Verify / repair" : "Download") { model.install() }.disabled(model.phase != .idle)
                         if model.ready { Button("Remove model", role: .destructive) { model.deleteModel() }.disabled(model.phase != .idle) }
@@ -109,14 +108,11 @@ private struct ContentView: View {
             }.tabItem { Label("Benchmark", systemImage: "chart.bar") }
             NavigationStack {
                 Form {
-                    Section("OwlWhisp Mobile 0.1.2") {
+                    Section("OwlWhisp Mobile 0.1.3") {
                         Text(UIDevice.current.model + " · iOS " + UIDevice.current.systemVersion)
                         Text("CPU · 2 threads · sherpa-onnx 1.13.6")
-                        Text(model.ready ? "Parakeet downloaded to device" : "No model on device")
+                        Text(model.ready ? "Parakeet downloaded" : "No model downloaded")
                         Text("The model is released from memory after processing.")
-                    }
-                    Section("Privacy") {
-                        Text("Recognition runs locally. The network is used to download the model. Audio and transcripts are not uploaded.")
                     }
                     Section("Licenses") {
                         Text("App: Apache-2.0. Parakeet weights: CC-BY-4.0. Source code and full license notices are in the repository.")

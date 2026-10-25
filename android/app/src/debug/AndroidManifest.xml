@@ -3,6 +3,7 @@
     <application>
         <activity android:name=".PanelPreviewActivity" android:exported="false" />
     </application>
+    <instrumentation android:name=".LiveDictationInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Live dictation and foreground recording checks" />
     <instrumentation android:name=".LongRecordingInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Disk recording and chunking checks" />
     <instrumentation android:name=".PanelInsetsInstrumentation" android:targetPackage="ai.owlwhisp.mobile"
         android:label="Voice panel navigation geometry checks" />

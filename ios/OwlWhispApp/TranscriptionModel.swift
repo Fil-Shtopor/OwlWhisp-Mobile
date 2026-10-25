@@ -20,6 +20,8 @@ final class TranscriptionModel: ObservableObject {
     private let recorder = AudioRecorder()
     private var job: Task<Void, Never>?
     private var generation = UUID()
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private var liveLength = 0
 
     init() {
         let savedLimit = UserDefaults.standard.integer(forKey: "recordingLimitSeconds")
@@ -39,7 +41,7 @@ final class TranscriptionModel: ObservableObject {
     func refresh() async {
         guard let store, phase == .idle else { return }
         ready = await store.present()
-        status = ready ? "Ready · all processing stays on device" : "Parakeet model required · 639 MiB"
+        status = ready ? "Ready" : "Parakeet model required · 639 MiB"
     }
 
     func install() {
@@ -68,7 +70,7 @@ final class TranscriptionModel: ObservableObject {
 
     func toggleRecording() {
         if phase == .recording { finishRecording(); return }
-        guard ready, phase == .idle else { return }
+        guard ready, phase == .idle, let store else { return }
         let token = UUID()
         generation = token
         AVAudioSession.sharedInstance().requestRecordPermission { allowed in
@@ -76,41 +78,62 @@ final class TranscriptionModel: ObservableObject {
                 guard let self, self.generation == token, UIApplication.shared.applicationState == .active else { return }
                 guard allowed else { self.status = "Allow microphone access in iPhone settings."; return }
                 do {
-                    try self.recorder.start(limitSeconds: self.recordingLimitSeconds,
+                    let recording = try self.recorder.start(limitSeconds: self.recordingLimitSeconds,
                         onLimit: { [weak self] in guard self?.generation == token else { return }; self?.finishRecording() },
                         onError: { [weak self] message in guard self?.generation == token else { return }; self?.cancel(); self?.status = message })
                     self.phase = .recording
-                    self.status = "Listening - " + RecordingPolicy.label(self.recordingLimitSeconds)
+                    self.status = "Listening"
+                    let base = self.text
+                    self.liveLength = 0
+                    self.job = Task {
+                        defer {
+                            try? FileManager.default.removeItem(at: recording.url)
+                            if self.generation == token { self.endBackgroundTask() }
+                        }
+                        do {
+                            let result = try await self.recognizer.transcribeLive(store: store, recording: recording) { value in
+                                Task { @MainActor [weak self] in
+                                    guard let self, self.generation == token, self.phase == .recording || self.phase == .processing, value.count >= self.liveLength else { return }
+                                    self.liveLength = value.count
+                                    self.text = [base, value].filter { !$0.isEmpty }.joined(separator: " ")
+                                }
+                            }
+                            guard self.generation == token else { return }
+                            self.text = [base, result].filter { !$0.isEmpty }.joined(separator: " ")
+                            self.phase = .idle
+                            self.status = result.isEmpty ? "No speech detected" : "Ready"
+                        } catch {
+                            guard self.generation == token else { return }
+                            self.recorder.cancel(); self.phase = .idle; self.status = error.localizedDescription
+                        }
+                    }
                 } catch { self.status = error.localizedDescription }
             }
         }
     }
 
     func finishRecording() {
-        guard phase == .recording, let store else { return }
-        let audio: URL
-        do { audio = try recorder.finish() }
-        catch { phase = .idle; status = error.localizedDescription; return }
-        phase = .processing
-        status = "Transcribing on device…"
+        guard phase == .recording else { return }
+        beginBackgroundTask()
+        do {
+            _ = try recorder.finish()
+            phase = .processing; status = "Finishing dictation"
+        } catch {
+            cancel(); status = error.localizedDescription
+        }
+    }
+
+    private func beginBackgroundTask() {
+        guard backgroundTask == .invalid else { return }
         let token = generation
-        job = Task {
-            defer { try? FileManager.default.removeItem(at: audio) }
-            do {
-                let result = try await recognizer.transcribeRecording(store: store, url: audio) { value in
-                    Task { @MainActor [weak self] in
-                        guard self?.generation == token, self?.phase == .processing else { return }
-                        self?.status = "Transcribing on device: " + String(Int(value * 100)) + "%"
-                    }
-                }
-                guard generation == token else { return }
-                if !result.isEmpty { text += (text.isEmpty ? "" : " ") + result }
-                status = result.isEmpty ? "No speech detected" : "Ready"
-            } catch {
-                guard generation == token else { return }
-                status = error.localizedDescription
-            }
-            if generation == token { phase = .idle }
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Finish dictation") { [weak self] in
+            // Keep the file, cursor and task intact if iOS suspends us. They resume on return.
+            Task { @MainActor [weak self] in if self?.generation == token { self?.endBackgroundTask() } }
+        }
+    }
+    private func endBackgroundTask() {
+        if backgroundTask != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTask); backgroundTask = .invalid
         }
     }
 
@@ -119,6 +142,7 @@ final class TranscriptionModel: ObservableObject {
         job?.cancel()
         job = nil
         recorder.cancel()
+        endBackgroundTask()
         phase = .idle
     }
 
@@ -169,7 +193,7 @@ final class TranscriptionModel: ObservableObject {
                                  "audio_s": Double(samples.count) / 16000, "elapsed_s": elapsed,
                                  "rtf": elapsed / (Double(samples.count) / 16000)])
                 }
-                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.2",
+                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.3",
                     "device": UIDevice.current.model, "os": UIDevice.current.systemVersion,
                     "mode": "cold: verification + load + decode; 2 CPU threads", "rows": rows]
                 let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
@@ -186,6 +210,12 @@ final class TranscriptionModel: ObservableObject {
 
     func backgrounded() {
         if phase == .idle { generation = UUID() }
-        if phase == .recording || phase == .processing { cancel(); status = "Recording cancelled" }
+        if phase == .processing { beginBackgroundTask() }
+    }
+
+    func audioInterrupted(_ notification: Notification) {
+        guard let type = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              type == AVAudioSession.InterruptionType.began.rawValue else { return }
+        if phase == .recording { finishRecording() }
     }
 }

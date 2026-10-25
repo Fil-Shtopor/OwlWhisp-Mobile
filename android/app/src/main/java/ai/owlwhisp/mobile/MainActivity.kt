@@ -31,6 +31,7 @@ class MainActivity : Activity() {
     private lateinit var content: LinearLayout
     private var transcript: EditText? = null
     private var record: Button? = null
+    private var cancelRecord: Button? = null
     private var savedText = ""
     private var currentTab = 0
     private val actions = mutableListOf<Button>()
@@ -44,6 +45,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         savedText = savedInstanceState?.getString("transcript").orEmpty()
+        if (app.draftText.isEmpty()) app.draftText = savedText
         currentTab = savedInstanceState?.getInt("tab") ?: intent.getIntExtra("tab", 0).coerceIn(0, 4)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(20), dp(20), dp(16)); setBackgroundColor(Palette.bg)
@@ -59,7 +61,6 @@ class MainActivity : Activity() {
         brand.addView(ImageView(this).apply { setImageResource(R.drawable.owlwhisp); contentDescription = "OwlWhisp" }, LinearLayout.LayoutParams(dp(52), dp(52)))
         brand.addView(TextView(this).apply { text = "OwlWhisp"; textSize = 30f; setTextColor(Palette.text); setPadding(dp(12), 0, 0, 0); setTypeface(null, Typeface.BOLD) })
         root.addView(brand)
-        root.addView(label("Your voice stays on your device", true))
         val navigation = LinearLayout(this)
         tabs.forEachIndexed { index, name ->
             navigation.addView(Button(this).apply { text = name; isAllCaps = false; textSize = 11f; minWidth = 0; minimumWidth = 0; setPadding(dp(2), 0, dp(2), 0); setTextColor(Palette.accent); setOnClickListener { showTab(index) } }, LinearLayout.LayoutParams(0, dp(60), 1f))
@@ -82,13 +83,14 @@ class MainActivity : Activity() {
         text = value; isAllCaps = false; setTextColor(Palette.accent); setOnClickListener { action() }; actions.add(this)
     }.also { content.addView(it, LinearLayout.LayoutParams(-1, -2)) }
     private fun showTab(index: Int) {
-        transcript?.let { savedText = it.text.toString() }; transcript = null; record = null
+        transcript?.let { if (!app.busy) app.draftText = it.text.toString() }; savedText = app.draftText
+        transcript = null; record = null; cancelRecord = null
         currentTab = index; content.removeAllViews(); actions.clear(); title(tabs[index])
         when (index) {
             0 -> {
                 content.addView(label(app.model.name, true))
                 record = button("Start dictation") {
-                    if (app.state.phase == Phase.RECORDING && app.isOwner(this)) app.stop(this)
+                    if (app.state.phase == Phase.RECORDING) app.stopCurrent()
                     else if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
                         requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1)
                     else startRecording()
@@ -98,16 +100,22 @@ class MainActivity : Activity() {
                     setBackgroundColor(Palette.inset); setPadding(dp(12), dp(12), dp(12), dp(12))
                     minLines = 5; gravity = Gravity.TOP
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
-                    setText(savedText)
+                    setText(app.draftText)
+                    addTextChangedListener(object : android.text.TextWatcher {
+                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                        override fun afterTextChanged(s: android.text.Editable?) { if (!app.busy) app.draftText = s.toString() }
+                    })
                 }.also { content.addView(it, LinearLayout.LayoutParams(-1, dp(200))) }
+                cancelRecord = button("Cancel recording") { app.cancelCurrent() }
                 button("Set up voice keyboard") { startActivity(Intent(this, KeyboardSetupActivity::class.java)) }
                 button("Copy text") { copy(transcript?.text.toString()) }
-                button("Clear") { savedText = ""; transcript?.setText("") }
-                content.addView(label("Recording limit: " + RecordingPolicy.label(app.recordingLimitSeconds) + ". Audio is deleted after processing.", true))
+                button("Clear") { savedText = ""; app.draftText = ""; transcript?.setText("") }
+                content.addView(label("Recording limit: " + RecordingPolicy.label(app.recordingLimitSeconds), true))
             }
             1 -> {
                 title("Recording")
-                content.addView(label("No time limit by default. Audio is saved temporarily on device and transcribed in short sections after you stop.", true))
+                content.addView(label("Choose when recording stops automatically. Text appears during dictation.", true))
                 RecordingPolicy.limits.forEach { seconds ->
                     button((if (app.recordingLimitSeconds == seconds) "Selected: " else "") + RecordingPolicy.label(seconds)) {
                         app.setRecordingLimit(seconds); showTab(1)
@@ -119,6 +127,9 @@ class MainActivity : Activity() {
                     button((if (app.warmSeconds == seconds) "✓ " else "") + text) { app.setWarmSeconds(seconds); showTab(1) }
                 }
                 button("Unload now") { app.unload() }
+                if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    button("Allow recording notifications") { requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3) }
+                }
                 title("Voice keyboard")
                 content.addView(label(if (VoiceKeyboard.enabled(this)) "OwlWhisp keyboard is enabled" else "OwlWhisp keyboard is not enabled", true))
                 button("Set up voice keyboard") { startActivity(Intent(this, KeyboardSetupActivity::class.java)) }
@@ -130,7 +141,7 @@ class MainActivity : Activity() {
                     content.addView(label(repository.name).apply { setTypeface(null, Typeface.BOLD) })
                     val languages = if (repository.languages.size > 10) "25 languages, including Russian" else repository.languages.joinToString(", ")
                     content.addView(label(languages + " · download " + repository.totalBytes / 1024 / 1024 + " MiB\n" +
-                        repository.manifest.getString("license") + " · " + if (repository.present()) "on device" else "not downloaded", true))
+                        repository.manifest.getString("license") + " · " + if (repository.present()) "downloaded" else "not downloaded", true))
                     if (repository.supported) {
                         button(if (repository.id == app.model.id) "✓ Selected" else "Select") { app.selectModel(repository.id); showTab(2) }
                         button(if (repository.present()) "Verify / repair" else "Download") { app.installModel(repository) }
@@ -166,7 +177,7 @@ class MainActivity : Activity() {
             }
             4 -> {
                 val memory = Debug.MemoryInfo(); Debug.getMemoryInfo(memory)
-                content.addView(label("OwlWhisp Mobile 0.1.2\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
+                content.addView(label("OwlWhisp Mobile 0.1.3\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
                     "\nUI PSS: " + memory.totalPss / 1024 + " MiB\nModel process: " + if (app.client.loaded) "running" else "unloaded"))
                 content.addView(label(app.lastMetrics, true))
                 button("Refresh") { showTab(4) }
@@ -175,7 +186,6 @@ class MainActivity : Activity() {
                     val notices = assets.open("THIRD_PARTY_NOTICES.md").bufferedReader().use { it.readText() }
                     AlertDialog.Builder(this).setTitle("Licenses").setMessage(notices).setPositiveButton("Close", null).show()
                 }
-                content.addView(label("Speech recognition runs locally. The network is used to download models. Audio and transcripts are not uploaded. There is no startup service or persistent background service.", true))
             }
         }
         render(app.state)
@@ -184,20 +194,35 @@ class MainActivity : Activity() {
         if (text.isNotBlank()) { getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("OwlWhisp", text)); Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show() }
     }
     private fun startRecording() {
-        savedText = transcript?.text?.toString() ?: savedText
-        app.start(this) { result ->
-        if (result.isNotBlank()) { savedText = (savedText + " " + result).trim(); transcript?.setText(savedText) }
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
+            !app.preferences.getBoolean("notification_prompted", false)) {
+            app.preferences.edit().putBoolean("notification_prompted", true).apply()
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 2)
+            return
         }
+        beginDictation()
+    }
+    private fun beginDictation() {
+        app.draftText = transcript?.text?.toString() ?: app.draftText
+        app.start(this) { }
     }
     private fun render(state: AppState) {
         status.text = state.message
+        savedText = app.draftText
+        transcript?.let { editor ->
+            if (editor.text.toString() != app.draftText) { editor.setText(app.draftText); editor.setSelection(editor.length()) }
+            editor.isEnabled = !app.busy
+        }
         progress.visibility = if (state.phase == Phase.DOWNLOADING) View.VISIBLE else View.GONE; progress.progress = state.progress
         actions.forEach { it.isEnabled = !app.busy }
-        record?.isEnabled = app.model.present() && (!app.busy || (state.phase == Phase.RECORDING && app.isOwner(this)))
-        record?.text = if (state.phase == Phase.RECORDING && app.isOwner(this)) "Stop and transcribe" else "Start dictation"
+        cancelRecord?.visibility = if (app.recordingActive) View.VISIBLE else View.GONE
+        cancelRecord?.isEnabled = app.recordingActive
+        record?.isEnabled = app.model.present() && (!app.busy || state.phase == Phase.RECORDING)
+        record?.text = if (state.phase == Phase.RECORDING) "Stop dictation" else "Start dictation"
     }
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 2 && !isFinishing) beginDictation()
         if (requestCode == 1 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED && hasWindowFocus()) startRecording()
     }
     override fun onNewIntent(intent: Intent) {
@@ -205,8 +230,8 @@ class MainActivity : Activity() {
         if (intent.hasExtra("tab")) showTab(intent.getIntExtra("tab", 0).coerceIn(0, 4))
     }
     override fun onResume() { super.onResume(); app.refresh(); if (currentTab == 1) showTab(1) }
-    override fun onPause() { app.cancel(this); if (!app.busy) app.unload(); super.onPause() }
-    override fun onDestroy() { app.removeObserver(observer); super.onDestroy() }
+    override fun onPause() { if (!app.busy) app.unload(); super.onPause() }
+    override fun onDestroy() { app.detach(this); app.removeObserver(observer); super.onDestroy() }
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("transcript", transcript?.text?.toString() ?: savedText); outState.putInt("tab", currentTab); super.onSaveInstanceState(outState)
     }

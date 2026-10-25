@@ -7,13 +7,14 @@ final class AudioRecorder {
     private let lock = NSLock()
     private var output: FileHandle?
     private var recordingURL: URL?
+    private var liveRecording: LiveRecording?
     private var active = false
     private var tapInstalled = false
     private var limitSent = false
     private var framesWritten: Int64 = 0
     private var maximum: Int64 = .max
 
-    func start(limitSeconds: Int, onLimit: @escaping () -> Void, onError: @escaping (String) -> Void) throws {
+    func start(limitSeconds: Int, onLimit: @escaping () -> Void, onError: @escaping (String) -> Void) throws -> LiveRecording {
         precondition(RecordingPolicy.limits.contains(limitSeconds))
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.record, mode: .measurement); try session.setActive(true)
@@ -26,11 +27,12 @@ final class AudioRecorder {
             throw NSError(domain: "OwlWhisp", code: 1, userInfo: [NSLocalizedDescriptionKey: "Microphone unavailable."])
         }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("owlwhisp-recording-" + UUID().uuidString + ".pcm16")
-        guard FileManager.default.createFile(atPath: url.path, contents: nil, attributes: [.protectionKey: FileProtectionType.complete]) else {
+        guard FileManager.default.createFile(atPath: url.path, contents: nil, attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]) else {
             try? session.setActive(false); throw AudioError.invalidRecording
         }
         do { output = try FileHandle(forWritingTo: url) } catch { try? FileManager.default.removeItem(at: url); try? session.setActive(false); throw error }
         recordingURL = url; framesWritten = 0; limitSent = false
+        let recording = LiveRecording(url: url); liveRecording = recording
         maximum = limitSeconds == 0 ? .max : Int64(16_000 * limitSeconds)
         active = true
         input.installTap(onBus: 0, bufferSize: 2048, format: format) { [weak self] buffer, _ in
@@ -56,7 +58,8 @@ final class AudioRecorder {
                     raw[2 * i] = UInt8(truncatingIfNeeded: unsigned); raw[2 * i + 1] = UInt8(truncatingIfNeeded: unsigned >> 8)
                 }
             }
-            do { try self.output?.write(contentsOf: bytes); self.framesWritten += Int64(count) }
+            do { try self.output?.write(contentsOf: bytes); self.framesWritten += Int64(count)
+                recording.update(samples: UInt64(self.framesWritten)) }
             catch { self.limitSent = true; self.lock.unlock(); DispatchQueue.main.async { onError(error.localizedDescription) }; return }
             let reached = self.framesWritten >= self.maximum
             if reached { self.limitSent = true }
@@ -65,6 +68,7 @@ final class AudioRecorder {
         }
         tapInstalled = true
         do { engine.prepare(); try engine.start() } catch { cancel(); throw error }
+        return recording
     }
     private func stopCapture() {
         if tapInstalled { engine.inputNode.removeTap(onBus: 0); tapInstalled = false }
@@ -79,11 +83,13 @@ final class AudioRecorder {
         do { try output?.synchronize(); try output?.close() }
         catch { output = nil; recordingURL = nil; try? FileManager.default.removeItem(at: url); throw error }
         output = nil; recordingURL = nil
+        liveRecording?.finish(); liveRecording = nil
         return url
     }
     func cancel() {
         stopCapture(); lock.lock(); defer { lock.unlock() }
         active = false; try? output?.close(); output = nil
+        liveRecording?.finish(); liveRecording = nil
         if let url = recordingURL { try? FileManager.default.removeItem(at: url) }
         recordingURL = nil
     }

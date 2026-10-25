@@ -14,8 +14,10 @@ class VoiceInputService : InputMethodService() {
     private val app get() = application as OwlWhispApp
     private var panel: VoiceInputPanel? = null
     private var editorGeneration = 0L
+    private var composingTarget: android.view.inputmethod.InputConnection? = null
+    private var hasComposition = false
     private val observer: (AppState) -> Unit = { state ->
-        panel?.render(state, app.model.name, app.model.present(), VoiceKeyboard.microphoneGranted(this), app.isOwner(this))
+        panel?.render(state, app.model.name, app.model.present(), VoiceKeyboard.microphoneGranted(this), state.phase == Phase.RECORDING)
     }
     override fun onCreate() {
         super.onCreate()
@@ -32,42 +34,63 @@ class VoiceInputService : InputMethodService() {
     override fun onCreateInputView(): View {
         return VoiceInputPanel(this, checkNotNull(window.window),
             dictate = {
-                if (app.state.phase == Phase.RECORDING && app.isOwner(this)) app.stop(this)
+                if (app.state.phase == Phase.RECORDING) app.stopCurrent()
                 else {
                     val target = currentInputConnection
                     if (target != null) {
                         val generation = editorGeneration
-                        app.start(this) { result ->
-                            if (generation == editorGeneration && isInputViewShown && result.isNotBlank()) target.commitText(result, 1)
+                        composingTarget = target
+                        fun update(text: String) {
+                            if (generation == editorGeneration && isInputViewShown && text.isNotBlank()) {
+                                if (runCatching { target.setComposingText(text, 1) }.getOrDefault(false)) hasComposition = true
+                                else detachEditor()
+                            }
+                        }
+                        app.start(this, onPartial = { update(it) }) { result ->
+                            update(result)
+                            if (generation == editorGeneration) runCatching { target.finishComposingText() }
                         }
                     }
                 }
             },
             keyboard = {
-                app.cancel(this)
+                detachEditor()
                 if (!switchToPreviousInputMethod()) getSystemService(InputMethodManager::class.java).showInputMethodPicker()
             },
             settings = {
-                app.cancel(this)
-                startActivity(Intent(this, KeyboardSetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                detachEditor()
+                startActivity(Intent(this, MainActivity::class.java).putExtra("tab", 1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         ).also { panel = it; observer(app.state) }
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
-        editorGeneration++; app.cancel(this)
+        detachEditor()
         super.onStartInput(attribute, restarting); observer(app.state)
     }
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting); observer(app.state); panel?.requestApplyInsets()
     }
+    override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (composingTarget == null || !app.isOwner(this)) return
+        val moved = if (hasComposition) candidatesEnd < 0 || newSelStart != candidatesEnd || newSelEnd != candidatesEnd
+            else newSelStart != oldSelStart || newSelEnd != oldSelEnd
+        if (moved) detachEditor()
+    }
+
     override fun onFinishInputView(finishingInput: Boolean) {
-        editorGeneration++; app.cancel(this)
+        detachEditor()
         super.onFinishInputView(finishingInput)
     }
     override fun dump(fd: FileDescriptor, fout: PrintWriter, args: Array<out String>) {
         super.dump(fd, fout, args)
         panel?.let { fout.println("OwlWhispPanel=" + it.layoutReport()) }
     }
-    override fun onDestroy() { app.cancel(this); app.removeObserver(observer); panel = null; super.onDestroy() }
+    private fun detachEditor() {
+        editorGeneration++
+        runCatching { composingTarget?.finishComposingText() }
+        composingTarget = null; hasComposition = false; app.detach(this)
+    }
+    override fun onDestroy() { detachEditor(); app.removeObserver(observer); panel = null; super.onDestroy() }
 }
