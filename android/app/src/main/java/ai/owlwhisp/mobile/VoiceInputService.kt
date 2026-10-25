@@ -63,6 +63,7 @@ class VoiceInputService : InputMethodService() {
         if (delivering || !editorVisible || !isInputViewShown || !delivery.active) return
         val connection = currentInputConnection ?: return
         val target = identity()
+        if (target != delivery.target) { delivery.suspend(); return }
         val snapshot = EditorAnchor.read(connection)
         if (delivery.suspended && !delivery.tryResume(target, snapshot)) return
         if (target != delivery.target || (delivery.anchor != null && !delivery.matches(target, snapshot))) {

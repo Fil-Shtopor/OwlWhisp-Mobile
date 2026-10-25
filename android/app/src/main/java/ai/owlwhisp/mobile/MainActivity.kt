@@ -32,6 +32,7 @@ class MainActivity : Activity() {
     private var transcript: EditText? = null
     private var record: Button? = null
     private var cancelRecord: Button? = null
+    private var liveInsertionSwitch: Switch? = null
     private var savedText = ""
     private var currentTab = 0
     private val actions = mutableListOf<Button>()
@@ -84,7 +85,7 @@ class MainActivity : Activity() {
     }.also { content.addView(it, LinearLayout.LayoutParams(-1, -2)) }
     private fun showTab(index: Int) {
         transcript?.let { if (!app.busy) app.draftText = it.text.toString() }; savedText = app.draftText
-        transcript = null; record = null; cancelRecord = null
+        transcript = null; record = null; cancelRecord = null; liveInsertionSwitch = null
         currentTab = index; content.removeAllViews(); actions.clear(); title(tabs[index])
         when (index) {
             0 -> {
@@ -120,7 +121,7 @@ class MainActivity : Activity() {
                     text = "Live text insertion"; setTextColor(Palette.text); isChecked = app.liveTextInsertion
                     isEnabled = !app.busy
                     setOnCheckedChangeListener { _, checked -> app.setLiveTextInsertion(checked) }
-                })
+                }.also { liveInsertionSwitch = it })
                 content.addView(label("On: insert phrases while dictating. Off: insert the result after Stop. Returning to a matching editor resumes insertion; ambiguous fields require confirmation.", true))
                 button("Manage speech models") { showTab(2) }
                 RecordingPolicy.limits.forEach { seconds ->
@@ -222,6 +223,7 @@ class MainActivity : Activity() {
         }
         progress.visibility = if (state.phase == Phase.DOWNLOADING) View.VISIBLE else View.GONE; progress.progress = state.progress
         actions.forEach { it.isEnabled = !app.busy }
+        liveInsertionSwitch?.isEnabled = !app.busy
         cancelRecord?.visibility = if (app.recordingActive) View.VISIBLE else View.GONE
         cancelRecord?.isEnabled = app.recordingActive
         record?.isEnabled = app.model.present() && (!app.busy || state.phase == Phase.RECORDING)

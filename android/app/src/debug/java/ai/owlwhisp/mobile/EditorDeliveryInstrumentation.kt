@@ -11,7 +11,7 @@ import android.widget.LinearLayout
 import org.json.JSONObject
 
 /** Two actual editors in one app, for cursor/field matching and manual UI regression checks. */
-class EditorTestActivity : Activity() {
+open class EditorTestActivity : Activity() {
     lateinit var original: EditText
     lateinit var other: EditText
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +29,9 @@ class EditorTestActivity : Activity() {
         view.post { getSystemService(InputMethodManager::class.java).showSoftInput(view, InputMethodManager.SHOW_IMPLICIT) }
     }
 }
+
+/** Separate editor process for end-to-end IME IPC checks. */
+class RemoteEditorTestActivity : EditorTestActivity()
 
 class EditorDeliveryInstrumentation : Instrumentation() {
     override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); start() }
