@@ -27,6 +27,9 @@ class OwlWhispApp : Application() {
     private var deliver: ((String) -> Unit)? = null
     private var partial: ((String) -> Unit)? = null
     private var captureService: RecordingService? = null
+    val editorDelivery = EditorDelivery()
+    val liveTextInsertion get() = preferences.getBoolean("live_text_insertion", true)
+    fun setLiveTextInsertion(enabled: Boolean) { if (!busy) preferences.edit().putBoolean("live_text_insertion", enabled).apply() }
     var draftText = ""
     var sessionText = ""
         private set
@@ -117,6 +120,7 @@ class OwlWhispApp : Application() {
         }
         main.removeCallbacks(idleRelease)
         val token = ++generation
+        editorDelivery.clear()
         this.owner = owner; deliver = onResult; partial = onPartial; sessionText = ""
         recordingStartedAt = SystemClock.elapsedRealtime()
         publish(AppState(Phase.RECORDING, "Listening"))
@@ -131,7 +135,7 @@ class OwlWhispApp : Application() {
     internal fun beginCapture(service: RecordingService, token: Long) {
         if (!acceptsCapture(token)) { service.finish(); return }
         captureService = service
-        val repository = model; val base = draftText
+        val repository = model; val base = draftText; val showLive = liveTextInsertion
         try {
             val audio = AudioRecorder(this, recordingLimitSeconds,
                 onLimit = { main.post { if (generation == token) stopCurrent() } },
@@ -156,7 +160,8 @@ class OwlWhispApp : Application() {
                             val update = text
                             main.post {
                                 if (generation == token) {
-                                    sessionText = update; draftText = listOf(base, update).filter { it.isNotBlank() }.joinToString(" ")
+                                    sessionText = update
+                                    if (showLive) draftText = listOf(base, update).filter { it.isNotBlank() }.joinToString(" ")
                                     partial?.invoke(update)
                                     publish(state.copy(transcript = update))
                                 }
@@ -172,8 +177,9 @@ class OwlWhispApp : Application() {
                                 val callback = deliver
                                 releaseCapture()
                                 lastMetrics = "Last run: $elapsed ms; PSS max " + peak / 1024 + " MiB"
-                                publish(AppState(Phase.IDLE, if (result.isBlank()) "No speech detected" else "Ready", transcript = result))
+                                draftText = listOf(base, result).filter { it.isNotBlank() }.joinToString(" ")
                                 callback?.invoke(result)
+                                publish(AppState(Phase.IDLE, if (result.isBlank()) "No speech detected" else "Ready", transcript = result))
                                 if (warmSeconds > 0) main.postDelayed(idleRelease, warmSeconds * 1000L)
                             }
                         }
@@ -201,6 +207,7 @@ class OwlWhispApp : Application() {
     fun cancelCurrent() {
         if (!recordingActive) return
         generation++
+        editorDelivery.clear()
         val audio = recorder
         audio?.requestStop(); releaseCapture()
         worker.execute { try { audio?.discard() } finally { client.unload() } }

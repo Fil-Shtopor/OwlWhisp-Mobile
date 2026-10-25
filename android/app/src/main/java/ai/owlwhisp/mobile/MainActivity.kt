@@ -115,7 +115,14 @@ class MainActivity : Activity() {
             }
             1 -> {
                 title("Recording")
-                content.addView(label("Choose when recording stops automatically. Text appears during dictation.", true))
+                content.addView(label("Choose when recording stops automatically.", true))
+                content.addView(Switch(this).apply {
+                    text = "Live text insertion"; setTextColor(Palette.text); isChecked = app.liveTextInsertion
+                    isEnabled = !app.busy
+                    setOnCheckedChangeListener { _, checked -> app.setLiveTextInsertion(checked) }
+                })
+                content.addView(label("On: insert phrases while dictating. Off: insert the result after Stop. Returning to a matching editor resumes insertion; ambiguous fields require confirmation.", true))
+                button("Manage speech models") { showTab(2) }
                 RecordingPolicy.limits.forEach { seconds ->
                     button((if (app.recordingLimitSeconds == seconds) "Selected: " else "") + RecordingPolicy.label(seconds)) {
                         app.setRecordingLimit(seconds); showTab(1)
@@ -139,7 +146,7 @@ class MainActivity : Activity() {
             2 -> {
                 app.models.forEach { repository ->
                     content.addView(label(repository.name).apply { setTypeface(null, Typeface.BOLD) })
-                    val languages = if (repository.languages.size > 10) "25 languages, including Russian" else repository.languages.joinToString(", ")
+                    val languages = if (repository.languages.size > 10) repository.languages.size.toString() + " languages" + (if ("ru" in repository.languages) ", including Russian" else "") else repository.languages.joinToString(", ")
                     content.addView(label(languages + " · download " + repository.totalBytes / 1024 / 1024 + " MiB\n" +
                         repository.manifest.getString("license") + " · " + if (repository.present()) "downloaded" else "not downloaded", true))
                     if (repository.supported) {
@@ -177,7 +184,7 @@ class MainActivity : Activity() {
             }
             4 -> {
                 val memory = Debug.MemoryInfo(); Debug.getMemoryInfo(memory)
-                content.addView(label("OwlWhisp Mobile 0.1.3\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
+                content.addView(label("OwlWhisp Mobile 0.1.4\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
                     "\nUI PSS: " + memory.totalPss / 1024 + " MiB\nModel process: " + if (app.client.loaded) "running" else "unloaded"))
                 content.addView(label(app.lastMetrics, true))
                 button("Refresh") { showTab(4) }

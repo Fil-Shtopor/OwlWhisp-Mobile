@@ -28,7 +28,8 @@ class VoiceInputPanel(
     private val imeWindow: Window,
     dictate: () -> Unit,
     keyboard: () -> Unit,
-    settings: () -> Unit
+    settings: () -> Unit,
+    resume: () -> Unit = {}
 ) : LinearLayout(context) {
     private val headline = text(17f, Palette.text)
     private val detail = text(12f, Palette.dim)
@@ -36,6 +37,11 @@ class VoiceInputPanel(
     private val keyboardButton = iconButton(R.drawable.ic_voice_keyboard, "Return to keyboard", 23)
     private val settingsButton = iconButton(R.drawable.ic_voice_settings, "Voice keyboard setup", 23)
     private val microphoneLabel = text(13f, Palette.accent)
+    private val resumeButton = text(14f, Palette.accent).apply {
+        text = "Resume insertion"; minHeight = dp(44); isClickable = true; isFocusable = true
+        background = ripple(circle(intArrayOf(Palette.raised))); visibility = GONE
+        setOnClickListener { resume() }
+    }
     private val halo = FrameLayout(context)
     private val working = ProgressBar(context).apply { indeterminateTintList = ColorStateList.valueOf(Palette.accent); visibility = GONE }
     private var recording = false
@@ -68,6 +74,7 @@ class VoiceInputPanel(
         addView(headline, LayoutParams(-1, -2))
         detail.maxLines = 2
         addView(detail, LayoutParams(-1, -2))
+        addView(resumeButton, LayoutParams(-1, dp(44)))
         val controls = LinearLayout(context).apply { gravity = Gravity.CENTER; setPadding(0, dp(12), 0, 0) }
         fun side(button: ImageButton, title: String) = LinearLayout(context).apply {
             orientation = VERTICAL; gravity = Gravity.CENTER
@@ -90,7 +97,7 @@ class VoiceInputPanel(
         setOnApplyWindowInsetsListener { _, insets -> latestInsets = insets; removeCallbacks(updateInsets); post(updateInsets); insets }
     }
 
-    fun render(state: AppState, modelName: String, modelReady: Boolean, microphoneAllowed: Boolean, ownsRecording: Boolean) {
+    fun render(state: AppState, modelName: String, modelReady: Boolean, microphoneAllowed: Boolean, ownsRecording: Boolean, deliveryHint: String? = null, canResume: Boolean = false, liveText: Boolean = true) {
         val listening = state.phase == Phase.RECORDING && ownsRecording
         val busy = state.phase in setOf(Phase.PROCESSING, Phase.DOWNLOADING, Phase.BENCHMARK) || (state.phase == Phase.RECORDING && !ownsRecording)
         val ready = modelReady && microphoneAllowed
@@ -106,7 +113,10 @@ class VoiceInputPanel(
             state.phase == Phase.ERROR -> "Try again"
             else -> "Ready to dictate"
         }
+        resumeButton.visibility = if (canResume) VISIBLE else GONE
         detail.text = when {
+            deliveryHint != null -> deliveryHint
+            listening && !liveText -> "Text will be inserted after Stop."
             listening -> state.transcript.takeLast(180).ifBlank { "Speak. Text appears as you dictate." }
             !microphoneAllowed -> "Allow the microphone in Settings"
             !modelReady -> "Download a model in Settings"
@@ -114,8 +124,8 @@ class VoiceInputPanel(
             else -> modelName
         }
         microphone.isEnabled = ready && (!busy || listening)
-        microphone.contentDescription = if (listening) "Stop and insert" else "Dictate"
-        microphoneLabel.text = when { listening -> "Stop and insert"; busy -> "Working"; else -> "Dictate" }
+        microphone.contentDescription = if (listening) "Stop dictation" else "Dictate"
+        microphoneLabel.text = when { listening -> "Stop dictation"; busy -> "Working"; else -> "Dictate" }
         working.visibility = if (busy) VISIBLE else GONE
         microphone.setImageResource(if (listening) R.drawable.ic_voice_stop else R.drawable.ic_voice_microphone)
         microphone.imageAlpha = if (busy) 0 else 255
@@ -189,7 +199,7 @@ class VoiceInputPanel(
             .put("keyboard", bounds(keyboardButton)).put("settings", bounds(settingsButton))
             .put("navigation_bottom", navBottom).put("bottom_padding", paddingBottom)
             .put("decor", bounds(imeWindow.decorView)).put("recording", recording)
-            .put("microphone_enabled", microphone.isEnabled)
+            .put("microphone_enabled", microphone.isEnabled).put("resume_visible", resumeButton.visibility == VISIBLE).put("resume", bounds(resumeButton))
     }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 }

@@ -65,5 +65,14 @@
         }
       ]
     }
-  ]
+  ],
+  "recognition": {
+    "family": "transducer",
+    "featureDim": 128,
+    "tokens": "tokens.txt",
+    "encoder": "encoder.int8.onnx",
+    "decoder": "decoder.int8.onnx",
+    "joiner": "joiner.int8.onnx",
+    "modelType": "nemo_transducer"
+  }
 }

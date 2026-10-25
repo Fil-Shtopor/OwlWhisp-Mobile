@@ -1,0 +1,4 @@
+<resources>
+    <item name="test_original_editor" type="id" />
+    <item name="test_other_editor" type="id" />
+</resources>

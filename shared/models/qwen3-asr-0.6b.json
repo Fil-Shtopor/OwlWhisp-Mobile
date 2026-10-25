@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "id": "qwen3-asr-0.6b",
+  "name": "Qwen3-ASR 0.6B (int8, sherpa-onnx export)",
+  "version": "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25@68818b2313fe77bd06f6a7c5068ff3ef59d02b8a",
+  "license": "Apache-2.0",
+  "attribution": "Qwen3-ASR by the Qwen team, Alibaba Cloud (Apache-2.0); ONNX export by Fangjun Kuang for k2-fsa/sherpa-onnx (Apache-2.0)",
+  "local_dir": "qwen3-asr-0.6b",
+  "languages": [
+    "zh",
+    "en",
+    "yue",
+    "ar",
+    "de",
+    "fr",
+    "es",
+    "pt",
+    "id",
+    "it",
+    "ko",
+    "ru",
+    "th",
+    "vi",
+    "ja",
+    "tr",
+    "hi",
+    "ms",
+    "nl",
+    "sv",
+    "da",
+    "fi",
+    "pl",
+    "cs",
+    "fil",
+    "fa",
+    "el",
+    "hu",
+    "mk",
+    "ro"
+  ],
+  "common": [],
+  "artifacts": [
+    {
+      "target": "cpu_int8",
+      "files": [
+        {
+          "path": "conv_frontend.onnx",
+          "url": "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/68818b2313fe77bd06f6a7c5068ff3ef59d02b8a/conv_frontend.onnx",
+          "bytes": 44148281,
+          "sha256": "d22dc4423e0940e49884e903d2ea2f7e5567c14fc1aed97e4e26d6b8f208ef9e"
+        },
+        {
+          "path": "encoder.int8.onnx",
+          "url": "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/68818b2313fe77bd06f6a7c5068ff3ef59d02b8a/encoder.int8.onnx",
+          "bytes": 182491662,
+          "sha256": "60748d3e6744a57c9c91e1b17424a6c2990567e8adceb0783940c03ed98fa9d9"
+        },
+        {
+          "path": "decoder.int8.onnx",
+          "url": "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/68818b2313fe77bd06f6a7c5068ff3ef59d02b8a/decoder.int8.onnx",
+          "bytes": 755914231,
+          "sha256": "4f6885be5959ae26af3089d38ee7972c5fafbeeb1cf8d5e76eab6d8b61ca5771"
+        },
+        {
+          "path": "tokenizer/merges.txt",
+          "url": "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/68818b2313fe77bd06f6a7c5068ff3ef59d02b8a/tokenizer/merges.txt",
+          "bytes": 1671853,
+          "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+        },
+        {
+          "path": "tokenizer/tokenizer_config.json",
+          "url": "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/68818b2313fe77bd06f6a7c5068ff3ef59d02b8a/tokenizer/tokenizer_config.json",
+          "bytes": 12487,
+          "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+        },
+        {
+          "path": "tokenizer/vocab.json",
+          "url": "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/68818b2313fe77bd06f6a7c5068ff3ef59d02b8a/tokenizer/vocab.json",
+          "bytes": 2776833,
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      ]
+    }
+  ],
+  "engine": "sherpa",
+  "recognition": {
+    "family": "qwen3_asr",
+    "featureDim": 128,
+    "convFrontend": "conv_frontend.onnx",
+    "encoder": "encoder.int8.onnx",
+    "decoder": "decoder.int8.onnx",
+    "tokenizer": "tokenizer"
+  }
+}

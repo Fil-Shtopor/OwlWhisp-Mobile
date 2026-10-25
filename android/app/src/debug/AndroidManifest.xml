@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <activity android:name=".PanelPreviewActivity" android:exported="false" />
+        <activity android:name=".EditorTestActivity" android:exported="false" />
     </application>
+    <instrumentation android:name=".EditorDeliveryInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Remembered editor delivery checks" />
+    <instrumentation android:name=".CatalogInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Downloaded model recognition checks" />
     <instrumentation android:name=".LiveDictationInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Live dictation and foreground recording checks" />
     <instrumentation android:name=".LongRecordingInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Disk recording and chunking checks" />
     <instrumentation android:name=".PanelInsetsInstrumentation" android:targetPackage="ai.owlwhisp.mobile"

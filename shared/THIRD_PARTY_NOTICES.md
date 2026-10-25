@@ -27,3 +27,16 @@ Only debug builds include that test audio.
 - Whistle and Needle runtime: Cactus Compute, Apache-2.0. https://huggingface.co/Cactus-Compute/whistle and https://huggingface.co/Cactus-Compute/needle3
 
 All model weights download separately. The Android benchmark bundles six short FLEURS EN/RU samples from the desktop repository; CC-BY-4.0, Conneau et al., 2022. Individual source IDs and transcripts are in benchmark/fixtures.json.
+
+## Additional downloadable sherpa-onnx models
+
+- GigaAM v3 with punctuation: Sber / GigaChat Team, MIT. Pinned export a6039be7cee829a9044a69ac0ebaf1c191217c97 by Fangjun Kuang. See licenses/gigaam-v3-LICENSE.txt.
+- NVIDIA Parakeet TDT-CTC 110M: CC-BY-4.0, transducer export by Fangjun Kuang. See licenses/CC-BY-4.0.txt.
+- Whisper large-v3-turbo: OpenAI, MIT. ONNX export by Fangjun Kuang. See licenses/whisper-LICENSE.txt.
+- Moonshine Tiny: Useful Sensors, MIT. ONNX export by Fangjun Kuang. See licenses/moonshine-LICENSE.txt.
+- SenseVoice Small: FunAudioLLM / Alibaba Group, FunASR Model Open Source License Agreement 1.1. This is a custom model license. See licenses/sensevoice-MODEL_LICENSE.txt.
+- Qwen3-ASR 0.6B: Qwen / Alibaba Cloud, Apache-2.0. ONNX export by Wasser1462, mirrored by Fangjun Kuang (csukuangfj2). https://github.com/QwenLM/Qwen3-ASR and https://github.com/Wasser1462/Qwen3-ASR-onnx
+- Omnilingual ASR 300M: Meta Platforms, Apache-2.0. Mobile uses Fangjun Kuang's 2025-11-12 INT8 ONNX export, rather than desktop's v2 archive. https://huggingface.co/facebook/omniASR-CTC-300M
+
+Each shared model manifest records immutable URLs, exact byte lengths and SHA-256 hashes.
+Models download separately and are not bundled in the APK or IPA.

@@ -12,13 +12,13 @@ import java.io.PrintWriter
 
 class VoiceInputService : InputMethodService() {
     private val app get() = application as OwlWhispApp
+    private val delivery get() = app.editorDelivery
     private var panel: VoiceInputPanel? = null
-    private var editorGeneration = 0L
-    private var composingTarget: android.view.inputmethod.InputConnection? = null
-    private var hasComposition = false
-    private val observer: (AppState) -> Unit = { state ->
-        panel?.render(state, app.model.name, app.model.present(), VoiceKeyboard.microphoneGranted(this), state.phase == Phase.RECORDING)
-    }
+    private var editorVisible = false
+    private var delivering = false
+    private val observer: (AppState) -> Unit = { render() }
+    private fun identity() = currentInputEditorInfo?.let(EditorIdentity::from)
+
     override fun onCreate() {
         super.onCreate()
         window?.window?.apply {
@@ -30,67 +30,93 @@ class VoiceInputService : InputMethodService() {
         app.observe(observer)
     }
     override fun onEvaluateFullscreenMode(): Boolean = false
-
     override fun onCreateInputView(): View {
         return VoiceInputPanel(this, checkNotNull(window.window),
             dictate = {
                 if (app.state.phase == Phase.RECORDING) app.stopCurrent()
-                else {
-                    val target = currentInputConnection
-                    if (target != null) {
-                        val generation = editorGeneration
-                        composingTarget = target
-                        fun update(text: String) {
-                            if (generation == editorGeneration && isInputViewShown && text.isNotBlank()) {
-                                if (runCatching { target.setComposingText(text, 1) }.getOrDefault(false)) hasComposition = true
-                                else detachEditor()
-                            }
-                        }
-                        app.start(this, onPartial = { update(it) }) { result ->
-                            update(result)
-                            if (generation == editorGeneration) runCatching { target.finishComposingText() }
-                        }
+                else if (!app.busy) {
+                    val connection = currentInputConnection
+                    val target = identity()
+                    if (connection != null && target != null) {
+                        val snapshot = EditorAnchor.read(connection)
+                        app.start(delivery, onPartial = { delivery.offer(it) }) { delivery.finish(it) }
+                        if (app.isOwner(delivery)) delivery.begin(target, snapshot, app.liveTextInsertion)
+                        render()
                     }
                 }
             },
             keyboard = {
-                detachEditor()
+                pauseDelivery()
                 if (!switchToPreviousInputMethod()) getSystemService(InputMethodManager::class.java).showInputMethodPicker()
             },
             settings = {
-                detachEditor()
+                pauseDelivery()
                 startActivity(Intent(this, MainActivity::class.java).putExtra("tab", 1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            },
+            resume = {
+                if (delivery.confirm(identity(), currentInputConnection?.let(EditorAnchor::read))) render()
             }
-        ).also { panel = it; observer(app.state) }
+        ).also { panel = it; render() }
     }
 
+    private fun syncDelivery() {
+        if (delivering || !editorVisible || !isInputViewShown || !delivery.active) return
+        val connection = currentInputConnection ?: return
+        val target = identity()
+        val snapshot = EditorAnchor.read(connection)
+        if (delivery.suspended && !delivery.tryResume(target, snapshot)) return
+        if (target != delivery.target || (delivery.anchor != null && !delivery.matches(target, snapshot))) {
+            delivery.suspend(); return
+        }
+        val text = delivery.pending
+        if (text.isEmpty()) return
+        delivering = true
+        try {
+            if (connection.commitText(text, 1)) delivery.committed(text)
+            else delivery.suspend(true)
+        } finally { delivering = false }
+    }
+    private fun render() {
+        syncDelivery()
+        val waiting = delivery.active && delivery.suspended
+        val same = identity() == delivery.target
+        val hint = when {
+            waiting && same -> "Insertion paused. Resume in this field, or find the original field."
+            waiting -> "Recording text is kept for " + (delivery.target?.packageName ?: "the original app")
+            !app.liveTextInsertion && app.state.phase == Phase.RECORDING -> "Text will be inserted after Stop."
+            else -> null
+        }
+        panel?.render(app.state, app.model.name, app.model.present(), VoiceKeyboard.microphoneGranted(this),
+            app.state.phase == Phase.RECORDING, hint, waiting && same, app.liveTextInsertion)
+    }
+    private fun pauseDelivery() { delivery.suspend() }
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
-        detachEditor()
-        super.onStartInput(attribute, restarting); observer(app.state)
+        editorVisible = false; pauseDelivery()
+        super.onStartInput(attribute, restarting)
     }
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
-        super.onStartInputView(info, restarting); observer(app.state); panel?.requestApplyInsets()
+        super.onStartInputView(info, restarting); editorVisible = true
+        app.main.post { render(); panel?.requestApplyInsets() }
     }
     override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        if (composingTarget == null || !app.isOwner(this)) return
-        val moved = if (hasComposition) candidatesEnd < 0 || newSelStart != candidatesEnd || newSelEnd != candidatesEnd
-            else newSelStart != oldSelStart || newSelEnd != oldSelEnd
-        if (moved) detachEditor()
+        val anchor = delivery.anchor
+        if (!delivering && editorVisible && delivery.active && !delivery.suspended && identity() == delivery.target && anchor != null &&
+            (newSelStart != anchor.start || newSelEnd != anchor.end)) {
+            // Validate again on the next result; selection notifications can lag our own commit.
+            delivery.suspend()
+        }
     }
-
     override fun onFinishInputView(finishingInput: Boolean) {
-        detachEditor()
+        editorVisible = false; pauseDelivery()
         super.onFinishInputView(finishingInput)
     }
+    override fun onFinishInput() { editorVisible = false; pauseDelivery(); super.onFinishInput() }
     override fun dump(fd: FileDescriptor, fout: PrintWriter, args: Array<out String>) {
         super.dump(fd, fout, args)
         panel?.let { fout.println("OwlWhispPanel=" + it.layoutReport()) }
     }
-    private fun detachEditor() {
-        editorGeneration++
-        runCatching { composingTarget?.finishComposingText() }
-        composingTarget = null; hasComposition = false; app.detach(this)
+    override fun onDestroy() {
+        editorVisible = false; pauseDelivery(); app.removeObserver(observer); panel = null; super.onDestroy()
     }
-    override fun onDestroy() { detachEditor(); app.removeObserver(observer); panel = null; super.onDestroy() }
 }

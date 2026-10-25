@@ -12,14 +12,18 @@ data class ModelFile(val name: String, val url: String, val bytes: Long, val sha
 
 class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3") {
     companion object {
-        val ids = listOf("parakeet-tdt-0.6b-v3", "parakeet-redux", "whistle", "phonon-2")
-        fun catalog(context: Context) = ids.map { ModelRepository(context, it) }
+        fun ids(context: Context): List<String> {
+            val list = JSONObject(context.assets.open("models/catalog.json").bufferedReader().use { it.readText() }).getJSONArray("android")
+            return (0 until list.length()).map { list.getString(it) }
+        }
+        fun catalog(context: Context) = ids(context).map { ModelRepository(context, it) }
     }
-    init { require(id in ids) }
+    init { require(id in ids(context)) }
     val manifest = JSONObject(context.assets.open("models/" + id + ".json").bufferedReader().use { it.readText() })
     val directory = File(context.noBackupFilesDir, "models/" + id)
     val name = manifest.getString("name")
     val engine = manifest.optString("engine", "sherpa")
+    val recognition: JSONObject get() = manifest.getJSONObject("recognition")
     val languages = manifest.getJSONArray("languages").let { a -> (0 until a.length()).map { a.getString(it) } }
     val supported = engine != "whistle" || android.os.Build.SUPPORTED_ABIS.contains("arm64-v8a")
     private val downloads = buildList<JSONObject> {
@@ -114,7 +118,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
 
     private fun parse(value: JSONObject): ModelFile {
         val name = value.getString("path")
-        require(name.matches(Regex("[A-Za-z0-9_.-]+")) && name !in setOf(".", ".."))
+        require(name.split('/').all { it.matches(Regex("[A-Za-z0-9_.-]+")) && it !in setOf(".", "..") })
         val url = value.optString("url", "")
         require(url.isEmpty() || URL(url).protocol == "https")
         val bytes = value.getLong("bytes"); val hash = value.getString("sha256")
@@ -133,6 +137,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
     private fun download(entry: ModelFile, destination: File, onProgress: (Long) -> Unit) {
         require(entry.url.startsWith("https://"))
         val partial = File(directory, entry.name + ".part")
+        check(partial.parentFile!!.mkdirs() || partial.parentFile!!.isDirectory)
         val connection = URL(entry.url).openConnection() as HttpURLConnection
         connection.connectTimeout = 30_000; connection.readTimeout = 30_000
         connection.setRequestProperty("User-Agent", "OwlWhisp-Mobile/0.1")

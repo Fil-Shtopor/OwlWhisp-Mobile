@@ -1,0 +1,25 @@
+{
+  "android": [
+    "parakeet-tdt-0.6b-v3",
+    "gigaam-v3-ru",
+    "parakeet-redux",
+    "whistle",
+    "phonon-2",
+    "parakeet-tdt-ctc-110m-en",
+    "whisper-turbo",
+    "moonshine-tiny-en",
+    "sense-voice-small",
+    "qwen3-asr-0.6b",
+    "omnilingual-300m"
+  ],
+  "ios": [
+    "parakeet-tdt-0.6b-v3",
+    "gigaam-v3-ru",
+    "parakeet-tdt-ctc-110m-en",
+    "whisper-turbo",
+    "moonshine-tiny-en",
+    "sense-voice-small",
+    "qwen3-asr-0.6b",
+    "omnilingual-300m"
+  ]
+}

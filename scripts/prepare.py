@@ -48,7 +48,7 @@ def model_files(manifest):
     names = set()
     for item in files:
         name = item["path"]
-        if Path(name).name != name or "/" in name or "\\" in name or name in {".", ".."} or name in names:
+        if not all(re.fullmatch(r"[A-Za-z0-9_.-]+", part) and part not in {".", ".."} for part in name.split("/")) or name in names:
             raise ValueError("Unsafe or duplicate model file path")
         if not item["url"].startswith("https://"):
             raise ValueError("Model downloads must use HTTPS")

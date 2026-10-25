@@ -15,7 +15,15 @@ final class TranscriptionModel: ObservableObject {
     @Published var recordingLimitSeconds = 0 {
         didSet { UserDefaults.standard.set(recordingLimitSeconds, forKey: "recordingLimitSeconds") }
     }
-    private var store: ModelStore?
+    @Published var models: [ModelManifest] = []
+    @Published var downloaded: Set<String> = []
+    @Published var selectedID = UserDefaults.standard.string(forKey: "selectedModel") ?? "parakeet-tdt-0.6b-v3"
+    @Published var liveTextInsertion = UserDefaults.standard.object(forKey: "liveTextInsertion") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(liveTextInsertion, forKey: "liveTextInsertion") }
+    }
+    var selectedModel: ModelManifest? { models.first { $0.id == selectedID } }
+    private var stores: [String: ModelStore] = [:]
+    private var store: ModelStore? { stores[selectedID] }
     private let recognizer = LocalRecognizer()
     private let recorder = AudioRecorder()
     private var job: Task<Void, Never>?
@@ -31,21 +39,39 @@ final class TranscriptionModel: ObservableObject {
             for file in files where file.lastPathComponent.hasPrefix("owlwhisp-recording-") && file.pathExtension == "pcm16" { try? FileManager.default.removeItem(at: file) }
         }
         do {
-            guard let manifestURL = Bundle.main.url(forResource: "parakeet-tdt-0.6b-v3", withExtension: "json", subdirectory: "models") else { throw ModelError.invalidManifest }
-            let manifest = try ModelManifest.decode(Data(contentsOf: manifestURL))
+            guard let catalogURL = Bundle.main.url(forResource: "catalog", withExtension: "json", subdirectory: "models"),
+                  let catalog = try JSONSerialization.jsonObject(with: Data(contentsOf: catalogURL)) as? [String: [String]],
+                  let ids = catalog["ios"] else { throw ModelError.invalidManifest }
             let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            store = ModelStore(manifest: manifest, directory: root.appendingPathComponent("models/" + manifest.id))
+            for id in ids {
+                guard let url = Bundle.main.url(forResource: id, withExtension: "json", subdirectory: "models") else { throw ModelError.invalidManifest }
+                let manifest = try ModelManifest.decode(Data(contentsOf: url))
+                models.append(manifest)
+                stores[id] = ModelStore(manifest: manifest, directory: root.appendingPathComponent("models/" + id))
+            }
+            if stores[selectedID] == nil { selectedID = "parakeet-tdt-0.6b-v3" }
         } catch { status = error.localizedDescription }
     }
 
     func refresh() async {
         guard let store, phase == .idle else { return }
+        for (id, item) in stores {
+            if await item.present() { downloaded.insert(id) } else { downloaded.remove(id) }
+        }
         ready = await store.present()
-        status = ready ? "Ready" : "Parakeet model required · 639 MiB"
+        status = ready ? "Ready · " + store.manifest.name : "Download a model in Models"
     }
 
-    func install() {
-        guard let store, phase == .idle else { return }
+    func selectModel(_ id: String) {
+        guard phase == .idle, stores[id] != nil else { return }
+        selectedID = id
+        UserDefaults.standard.set(id, forKey: "selectedModel")
+        ready = downloaded.contains(id)
+        Task { await refresh() }
+    }
+
+    func install(_ id: String? = nil) {
+        guard let store = stores[id ?? selectedID], phase == .idle else { return }
         phase = .downloading
         status = "Downloading model…"
         let token = UUID()
@@ -60,7 +86,7 @@ final class TranscriptionModel: ObservableObject {
                     }
                 }
                 guard generation == token else { return }
-                ready = true; phase = .idle; status = "Model verified. Ready to dictate."
+                downloaded.insert(store.manifest.id); ready = downloaded.contains(selectedID); phase = .idle; status = "Model verified. Ready to dictate."
             } catch {
                 guard generation == token else { return }
                 phase = .idle; status = error.localizedDescription
@@ -84,6 +110,7 @@ final class TranscriptionModel: ObservableObject {
                     self.phase = .recording
                     self.status = "Listening"
                     let base = self.text
+                    let showLive = self.liveTextInsertion
                     self.liveLength = 0
                     self.job = Task {
                         defer {
@@ -93,7 +120,7 @@ final class TranscriptionModel: ObservableObject {
                         do {
                             let result = try await self.recognizer.transcribeLive(store: store, recording: recording) { value in
                                 Task { @MainActor [weak self] in
-                                    guard let self, self.generation == token, self.phase == .recording || self.phase == .processing, value.count >= self.liveLength else { return }
+                                    guard let self, showLive, self.generation == token, self.phase == .recording || self.phase == .processing, value.count >= self.liveLength else { return }
                                     self.liveLength = value.count
                                     self.text = [base, value].filter { !$0.isEmpty }.joined(separator: " ")
                                 }
@@ -151,13 +178,13 @@ final class TranscriptionModel: ObservableObject {
         status = "The model is already unloaded from memory"
     }
 
-    func deleteModel() {
-        guard phase == .idle, let store else { return }
+    func deleteModel(_ id: String? = nil) {
+        guard phase == .idle, let store = stores[id ?? selectedID] else { return }
         phase = .processing
         job = Task {
             do {
                 try await store.delete()
-                ready = false; status = "Model removed from device"
+                downloaded.remove(store.manifest.id); ready = downloaded.contains(selectedID); status = "Model removed from device"
             } catch { status = error.localizedDescription }
             phase = .idle
         }
@@ -174,6 +201,7 @@ final class TranscriptionModel: ObservableObject {
                 else { throw ModelError.invalidManifest }
                 var rows = [[String: Any]]()
                 for fixture in fixtures {
+                    guard let language = fixture["language"] as? String, store.manifest.languages.contains(language) else { continue }
                     try Task.checkCancellation()
                     guard let name = fixture["file"] as? String, let reference = fixture["transcript"] as? String,
                           let url = Bundle.main.url(forResource: name, withExtension: nil, subdirectory: "benchmark")
@@ -193,7 +221,7 @@ final class TranscriptionModel: ObservableObject {
                                  "audio_s": Double(samples.count) / 16000, "elapsed_s": elapsed,
                                  "rtf": elapsed / (Double(samples.count) / 16000)])
                 }
-                let report: [String: Any] = ["model": "parakeet-tdt-0.6b-v3", "app_version": "0.1.3",
+                let report: [String: Any] = ["model": store.manifest.id, "app_version": "0.1.4",
                     "device": UIDevice.current.model, "os": UIDevice.current.systemVersion,
                     "mode": "cold: verification + load + decode; 2 CPU threads", "rows": rows]
                 let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])

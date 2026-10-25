@@ -43,6 +43,7 @@ public actor ModelStore {
             let destination = directory.appendingPathComponent(file.path)
             if !(try valid(destination, spec: file)) {
                 let partial = directory.appendingPathComponent(file.path + ".part")
+                try FileManager.default.createDirectory(at: partial.deletingLastPathComponent(), withIntermediateDirectories: true)
                 let preceding = complete
                 let total = manifest.downloadBytes
                 let request = ModelDownload(destination: partial, expectedBytes: file.bytes) { bytes in

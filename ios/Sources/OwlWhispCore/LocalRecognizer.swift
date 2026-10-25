@@ -10,15 +10,28 @@ public actor LocalRecognizer {
     private func load(store: ModelStore) async throws -> SherpaOnnxOfflineRecognizer {
         try await store.verify(); try Task.checkCancellation()
         let directory = store.directory
-        func path(_ name: String) -> String { directory.appendingPathComponent(name).path }
+        let spec = store.manifest.recognition
+        func path(_ name: String?) -> String { name.map { directory.appendingPathComponent($0).path } ?? "" }
+        var model = sherpaOnnxOfflineModelConfig(tokens: path(spec.tokens), numThreads: 2, provider: "cpu", modelType: spec.modelType ?? "")
+        switch spec.family {
+        case "transducer":
+            model.transducer = sherpaOnnxOfflineTransducerModelConfig(encoder: path(spec.encoder), decoder: path(spec.decoder), joiner: path(spec.joiner))
+        case "whisper":
+            model.whisper = sherpaOnnxOfflineWhisperModelConfig(encoder: path(spec.encoder), decoder: path(spec.decoder), language: "", task: "transcribe")
+        case "moonshine":
+            model.moonshine = sherpaOnnxOfflineMoonshineModelConfig(preprocessor: path(spec.preprocessor), encoder: path(spec.encoder),
+                uncachedDecoder: path(spec.uncachedDecoder), cachedDecoder: path(spec.cachedDecoder))
+        case "sense_voice":
+            model.sense_voice = sherpaOnnxOfflineSenseVoiceModelConfig(model: path(spec.model), language: "auto", useInverseTextNormalization: true)
+        case "omnilingual":
+            model.omnilingual = sherpaOnnxOfflineOmnilingualAsrCtcModelConfig(model: path(spec.model))
+        case "qwen3_asr":
+            model.qwen3_asr = sherpaOnnxOfflineQwen3ASRModelConfig(convFrontend: path(spec.convFrontend), encoder: path(spec.encoder),
+                decoder: path(spec.decoder), tokenizer: path(spec.tokenizer), temperature: 0, topP: 1)
+        default: throw ModelError.invalidManifest
+        }
         var config = sherpaOnnxOfflineRecognizerConfig(
-            featConfig: sherpaOnnxFeatureConfig(sampleRate: 16_000, featureDim: 128),
-            modelConfig: sherpaOnnxOfflineModelConfig(
-                tokens: path("tokens.txt"),
-                transducer: sherpaOnnxOfflineTransducerModelConfig(
-                    encoder: path("encoder.int8.onnx"), decoder: path("decoder.int8.onnx"), joiner: path("joiner.int8.onnx")
-                ), numThreads: 2, provider: "cpu", modelType: "nemo_transducer"
-            )
+            featConfig: sherpaOnnxFeatureConfig(sampleRate: 16_000, featureDim: spec.featureDim), modelConfig: model
         )
         return withUnsafePointer(to: &config) { SherpaOnnxOfflineRecognizer(config: $0) }
     }
@@ -48,7 +61,7 @@ public actor LocalRecognizer {
         }
         return text
     }
-    /// Parakeet is an offline model; decode short phrases while capture continues.
+    /// Decode short phrases while capture continues; the selected model is loaded once per recording.
     public func transcribeLive(store: ModelStore, recording: LiveRecording,
                                partial: @Sendable (String) -> Void) async throws -> String {
         let chunks = try LivePCM16Chunks(url: recording.url)

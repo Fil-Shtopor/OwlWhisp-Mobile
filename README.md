@@ -5,13 +5,13 @@ Offline voice input for Android and iPhone, in a separate repository from
 
 ## Downloads
 
-**OwlWhisp Mobile 0.1.3** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.3).
+**OwlWhisp Mobile 0.1.4** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.4).
 
 | Platform | Application download | Installation |
 |---|---|---|
-| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.3/OwlWhisp-Mobile-0.1.3-android.apk)** | Signed APK; updates existing OwlWhisp installations |
-| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.3/OwlWhisp-Mobile-0.1.3-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
-| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.3/OwlWhisp-Mobile-0.1.3-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
+| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.4/OwlWhisp-Mobile-0.1.4-android.apk)** | Signed APK; updates existing OwlWhisp installations |
+| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.4/OwlWhisp-Mobile-0.1.4-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
+| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.4/OwlWhisp-Mobile-0.1.4-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
 
 Models download separately. The iPhone IPA is unsigned and is not a TestFlight/App Store
 release. A free Apple account can be used for personal signing. Checksums and build provenance
@@ -22,7 +22,7 @@ including Russian. Models download separately from the APK.
 
 ## Android
 
-Version 0.1.3 includes guided keyboard setup and a regular selectable voice IME.
+Version 0.1.4 includes guided keyboard setup and a regular selectable voice IME.
 [Voice panel preview](docs/validation/android-voice-panel-ready.png).
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
@@ -43,10 +43,23 @@ Version 0.1.3 includes guided keyboard setup and a regular selectable voice IME.
 | Parakeet Redux | 25, including Russian | 171 MiB | voxrt |
 | Whistle | EN, DE, FR, ES, IT, NL, PL | 16 MiB | Needle; ARM64 only |
 | Phonon-2 | English | 178 MiB | phonon-2-c; 244 MiB installed |
+| GigaAM v3, punctuation | Russian | 221 MiB | sherpa-onnx |
+| Parakeet TDT-CTC 110M | English | 455 MiB | sherpa-onnx |
+| Whisper large-v3-turbo INT8 | 100 languages, including Russian | 988 MiB | sherpa-onnx |
+| Moonshine Tiny INT8 | English | 118 MiB | sherpa-onnx |
+| SenseVoice Small INT8 | ZH, EN, JA, KO, YUE | 228 MiB | sherpa-onnx |
+| Qwen3-ASR 0.6B INT8 | 30 languages, including Russian | 941 MiB | sherpa-onnx |
+| Omnilingual ASR 300M CTC INT8 | Multilingual, including Russian | 348 MiB | sherpa-onnx |
 
 Parakeet, Redux and Phonon passed real recognition checks on an Android API 34 x86_64
 emulator. Whistle's ARM64 adapter compiles, but needs validation on a physical ARM64 phone.
 A smaller download does not imply the same amount of RAM during recognition.
+
+Open **Settings > Manage speech models** (or the Models tab) to download, select, repair or remove a model.
+GigaAM v3 is the Russian Sber/GigaChat model with punctuation. Parakeet remains the default.
+The mobile Omnilingual model uses the pinned loose-file 2025-11-12 INT8 export; desktop currently
+uses the 2026-02-05 v2 archive. Qwen3 uses pinned loose files from the exporter mirror instead of
+the desktop archive. Parakeet 110M uses the available full-precision transducer export.
 
 Open **Set up voice keyboard** in Dictate or Settings, allow the microphone, enable OwlWhisp
 in Android's keyboard settings and select it through the system keyboard picker. Samsung Keyboard's microphone button depends on Samsung's supported providers; the
@@ -57,6 +70,7 @@ app provides its own voice IME. Android 9/API 28+; ARM64 phones and x86_64 emula
 SwiftUI app with the same five sections, branding, ordinary Parakeet, background-capable microphone
 capture/resampling, verified downloads, local benchmark, copy and share. Swift tests and an
 iOS device archive and simulator build pass in GitHub Actions. It has not been tested on a physical iPhone.
+GigaAM v3, Parakeet 110M, Whisper Turbo, Moonshine Tiny, SenseVoice, Qwen3-ASR and Omnilingual are also downloadable on iOS.
 Redux, Whistle and Phonon adapters and a keyboard extension are not yet implemented on iOS.
 Releases include an **unsigned ARM64 iPhone IPA** and a **simulator app ZIP**. The IPA requires
 personal Apple signing before installation, for example with Sideloadly on Windows or macOS;
@@ -105,12 +119,21 @@ Keep the app open while downloading or benchmarking. Downloads are not resumable
 
 Recording has **no time limit by default** on Android and iOS. Settings can optionally stop
 after 1, 5 or 15 minutes. Explicitly started recording continues through Settings, app switching and screen lock.
-Text appears in short phrases while recording continues. The first update needs about eight
+**Settings > Live text insertion** is enabled by default and saved between launches. When enabled,
+text appears in short phrases while recording continues. When disabled, the result is inserted only
+after Stop and final recognition. Recognition may still run during capture to keep the backlog bounded. The first update needs about eight
 seconds of audio plus model loading/decoding; this is not a word-by-word streaming model. Private PCM16 audio is temporarily stored on disk at about
 **1.83 MiB per minute**; the complete recording is not retained in RAM. Audio is deleted after
 processing/cancellation, and abandoned recordings are removed at the next app start.
-On Android, a recording notification offers Stop/Cancel. Leaving a text editor detaches live
-insertion without stopping capture; the transcript remains in Dictate. iOS uses its audio
+On Android, a recording notification offers Stop/Cancel. Leaving a text editor pauses
+insertion without stopping capture. The app remembers the original package, editor metadata,
+cursor position and up to 128 characters on each side in process memory. Returning to a matching
+editor and distinctive context resumes insertion, including a pending result completed in the
+background. Another app or a changed field receives no automatic text. Empty, short, changed or
+unreadable contexts require **Resume insertion** in an editor with matching metadata. Android does
+not provide a universal chat ID: two identical fields can be indistinguishable, so this is a
+conservative context check, not a guarantee of conversation identity. Only new text is appended;
+returning does not replay text already inserted. The transcript also remains in Dictate. iOS uses its audio
 background mode; finite background time after Stop may defer the final tail until returning
 to the app. Physical-phone background behavior still needs validation.
 

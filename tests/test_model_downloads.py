@@ -42,6 +42,29 @@ class DownloadIntegrityTests(unittest.TestCase):
             with patch("urllib.request.urlopen", side_effect=AssertionError("Unexpected network")):
                 self.assertEqual(fetch(self.spec(b"valid"), destination), destination)
 
+    def test_all_catalog_downloads_and_recognizer_paths(self):
+        directory = ROOT / "shared/models"
+        catalog = json.loads((directory / "catalog.json").read_text(encoding="utf-8"))
+        self.assertIn("gigaam-v3-ru", catalog["android"])
+        self.assertIn("gigaam-v3-ru", catalog["ios"])
+        self.assertEqual(len(catalog["android"]), len(set(catalog["android"])))
+        for name in catalog["android"]:
+            manifest = json.loads((directory / (name + ".json")).read_text(encoding="utf-8"))
+            specs = model_files(manifest)
+            self.assertEqual(manifest["id"], name)
+            if name in catalog["ios"]:
+                recognition = manifest["recognition"]
+                files = {row["path"] for row in specs}
+                for key, value in recognition.items():
+                    if key not in {"family", "featureDim", "modelType"}:
+                        if key == "tokenizer":
+                            self.assertTrue({value + "/" + suffix for suffix in ["vocab.json", "merges.txt", "tokenizer_config.json"]} <= files)
+                        else:
+                            self.assertIn(value, files)
+        unsafe = {"common": [{"path": "tokenizer/../escape", **self.spec(b"x")}], "artifacts": [{"target": "cpu_int8", "files": []}]}
+        with self.assertRaises(ValueError):
+            model_files(unsafe)
+
     def test_manifest_has_pinned_regular_parakeet_and_safe_paths(self):
         manifest = json.loads((ROOT / "shared/models/parakeet-tdt-0.6b-v3.json").read_text())
         specs = model_files(manifest)

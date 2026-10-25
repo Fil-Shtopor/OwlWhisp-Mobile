@@ -34,6 +34,7 @@ private struct ContentView: View {
                             Text("OwlWhisp").font(.largeTitle.bold())
                         }
                         Text(model.status).accessibilityAddTraits(.updatesFrequently)
+                        Text(model.selectedModel?.name ?? "").font(.footnote).foregroundStyle(.secondary)
                         Button(action: model.toggleRecording) {
                             Label(model.phase == .recording ? "Stop dictation" : "Start dictation",
                                   systemImage: model.phase == .recording ? "stop.fill" : "mic.fill")
@@ -58,7 +59,11 @@ private struct ContentView: View {
                                 Text(RecordingPolicy.label(seconds)).tag(seconds)
                             }
                         }.disabled(model.phase != .idle)
-                        Text("Choose when recording stops automatically. Text appears during dictation.")
+                        Toggle("Live text insertion", isOn: $model.liveTextInsertion).disabled(model.phase != .idle)
+                        Text("When enabled, text appears in phrases during dictation. When disabled, text appears after Stop.")
+                    }
+                    Section("Speech models") {
+                        NavigationLink("Manage speech models") { MobileModelList(model: model) }
                     }
                     Section("Memory") {
                         Text("The model is released after each dictation.")
@@ -75,26 +80,13 @@ private struct ContentView: View {
                 }.navigationTitle("Settings")
             }.tabItem { Label("Settings", systemImage: "gearshape") }
             NavigationStack {
-                Form {
-                    Section("Parakeet TDT 0.6B v3") {
-                        Text("Ordinary Parakeet INT8 · 25 languages, including Russian · 639 MiB")
-                        Text(model.ready ? "Downloaded" : "Not downloaded")
-                        if model.phase == .downloading { ProgressView(value: model.progress) }
-                        Button(model.ready ? "Verify / repair" : "Download") { model.install() }.disabled(model.phase != .idle)
-                        if model.ready { Button("Remove model", role: .destructive) { model.deleteModel() }.disabled(model.phase != .idle) }
-                        Text("NVIDIA · CC-BY-4.0; ONNX export Fangjun Kuang. sherpa-onnx Apache-2.0, ONNX Runtime MIT.").font(.footnote)
-                    }
-                    Section("Small models") {
-                        Text("Android supports Redux, Whistle and Phonon-2. Their separate runtimes have not yet been ported to iOS.")
-                        Text("Redux: 25 languages. Whistle: EN/DE/FR/ES/IT/NL/PL. Phonon-2: English.").font(.footnote)
-                    }
-                }.navigationTitle("Models")
+                MobileModelList(model: model)
             }.tabItem { Label("Models", systemImage: "square.stack.3d.up") }
             NavigationStack {
                 Form {
                     Section("Local benchmark") {
                         Text("Six short FLEURS EN/RU clips. Each clip uses a cold model load. Lower WER and RTF are better.")
-                        Button("Run Parakeet") { model.runBenchmark() }.disabled(!model.ready || model.phase != .idle)
+                        Button("Run selected model") { model.runBenchmark() }.disabled(!model.ready || model.phase != .idle)
                         Text(model.status)
                     }
                     if !model.benchmarkReport.isEmpty {
@@ -108,10 +100,11 @@ private struct ContentView: View {
             }.tabItem { Label("Benchmark", systemImage: "chart.bar") }
             NavigationStack {
                 Form {
-                    Section("OwlWhisp Mobile 0.1.3") {
+                    Section("OwlWhisp Mobile 0.1.4") {
                         Text(UIDevice.current.model + " · iOS " + UIDevice.current.systemVersion)
                         Text("CPU · 2 threads · sherpa-onnx 1.13.6")
-                        Text(model.ready ? "Parakeet downloaded" : "No model downloaded")
+                        Text(model.selectedModel?.name ?? "No model selected")
+                        Text(model.ready ? "Selected model downloaded" : "Selected model not downloaded")
                         Text("The model is released from memory after processing.")
                     }
                     Section("Licenses") {
@@ -121,5 +114,31 @@ private struct ContentView: View {
                 }.navigationTitle("Diagnostics")
             }.tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
+    }
+}
+
+@MainActor
+private struct MobileModelList: View {
+    @ObservedObject var model: TranscriptionModel
+    var body: some View {
+        Form {
+            Section { Text(model.status) }
+            ForEach(model.models) { item in
+                Section(item.name) {
+                    Text(String(item.languages.count) + " languages ? " + String(item.downloadBytes / 1024 / 1024) + " MiB")
+                    Text(model.downloaded.contains(item.id) ? "Downloaded" : "Not downloaded")
+                    Button(model.selectedID == item.id ? "Selected" : "Select") { model.selectModel(item.id) }.disabled(model.phase != .idle)
+                    Button(model.downloaded.contains(item.id) ? "Verify / repair" : "Download") { model.install(item.id) }.disabled(model.phase != .idle)
+                    if model.downloaded.contains(item.id) {
+                        Button("Remove model", role: .destructive) { model.deleteModel(item.id) }.disabled(model.phase != .idle)
+                    }
+                    Text(item.license + " ? " + item.attribution).font(.footnote)
+                }
+            }
+            if model.phase == .downloading { ProgressView(value: model.progress) }
+            Section("Additional Android models") {
+                Text("Redux, Whistle and Phonon-2 use separate Android runtimes. Their iOS adapters are not available.")
+            }
+        }.navigationTitle("Models")
     }
 }
