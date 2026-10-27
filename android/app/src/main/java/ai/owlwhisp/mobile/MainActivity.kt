@@ -211,7 +211,7 @@ class MainActivity : Activity() {
             }
             4 -> {
                 val memory = Debug.MemoryInfo(); Debug.getMemoryInfo(memory)
-                content.addView(label("OwlWhisp Mobile 0.2.0\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
+                content.addView(label("OwlWhisp Mobile 0.1.6\nAndroid " + Build.VERSION.RELEASE + " · " + Build.MODEL + "\n" + Build.SUPPORTED_ABIS.joinToString() +
                     "\nUI PSS: " + memory.totalPss / 1024 + " MiB\nModel process: " + if (app.client.loaded) "running" else "unloaded"))
                 content.addView(label(app.lastMetrics, true))
                 button("Refresh") { showTab(4) }

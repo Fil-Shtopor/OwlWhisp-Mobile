@@ -19,23 +19,23 @@ final class MobileFeaturesTests: XCTestCase {
     }
     private func release(_ change: (inout [String: Any]) -> Void = { _ in }) throws -> Data {
         let base = AppRelease.page.absoluteString
-        var value: [String: Any] = ["tag_name": "v0.2.0", "html_url": base + "/tag/v0.2.0",
+        var value: [String: Any] = ["tag_name": "v0.1.6", "html_url": base + "/tag/v0.1.6",
             "draft": false, "prerelease": false, "body": "Update notes",
-            "assets": [["name": "OwlWhisp-Mobile-0.2.0-ios-unsigned.ipa", "size": 1234,
-                        "browser_download_url": base + "/download/v0.2.0/OwlWhisp-Mobile-0.2.0-ios-unsigned.ipa"]]]
+            "assets": [["name": "OwlWhisp-Mobile-0.1.6-ios-unsigned.ipa", "size": 1234,
+                        "browser_download_url": base + "/download/v0.1.6/OwlWhisp-Mobile-0.1.6-ios-unsigned.ipa"]]]
         change(&value)
         return try JSONSerialization.data(withJSONObject: value)
     }
     func testReleaseDiscoveryAndOlderOrPreviewFiltering() throws {
         let update = try XCTUnwrap(AppRelease.available(data: release(), current: "0.1.5"))
-        XCTAssertEqual(update.version.description, "0.2.0")
+        XCTAssertEqual(update.version.description, "0.1.6")
         XCTAssertNotNil(update.ipa)
-        XCTAssertNil(try AppRelease.available(data: release(), current: "0.2.0"))
+        XCTAssertNil(try AppRelease.available(data: release(), current: "0.1.6"))
         XCTAssertNil(try AppRelease.available(data: release(), current: "1.0.0"))
         XCTAssertNil(try AppRelease.available(data: release { $0["prerelease"] = true }, current: "0.1.5"))
         XCTAssertNil(try AppRelease.available(data: release { $0["draft"] = true }, current: "0.1.5"))
         XCTAssertThrowsError(try AppRelease.available(data: release { $0["html_url"] = "https://evil.test/" }, current: "0.1.5"))
-        XCTAssertThrowsError(try AppRelease.available(data: release { $0["tag_name"] = "v0.2.0/evil" }, current: "0.1.5"))
+        XCTAssertThrowsError(try AppRelease.available(data: release { $0["tag_name"] = "v0.1.6/evil" }, current: "0.1.5"))
         let withoutIPA = try XCTUnwrap(AppRelease.available(data: release { $0["assets"] = [] }, current: "0.1.5"))
         XCTAssertNil(withoutIPA.ipa)
     }
@@ -51,7 +51,7 @@ final class MobileFeaturesTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let history = BenchmarkHistory(directory: directory)
         func report(_ id: String, _ language: String) throws -> Data {
-            try JSONSerialization.data(withJSONObject: ["model": id, "model_version": "weights-v1", "app_version": "0.2.0",
+            try JSONSerialization.data(withJSONObject: ["model": id, "model_version": "weights-v1", "app_version": "0.1.6",
                 "rows": [["file": "clip.wav", "language": language, "reference": "one two", "transcript": "one",
                           "audio_s": 2.0, "elapsed_s": 1.0]]])
         }

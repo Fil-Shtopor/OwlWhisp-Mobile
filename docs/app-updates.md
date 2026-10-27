@@ -24,7 +24,7 @@ The APK is shared through a non-exported FileProvider restricted to the private 
 Debug APKs have a different certificate and cannot install public release APKs as updates.
 Install the public signed build to use this update path.
 
-Version 0.2.0 is the first build with update checks, so users on older versions must install
+Version 0.1.6 is the first build with update checks, so users on older versions must install
 it manually once. Future stable GitHub releases are discovered by this build.
 
 ## iOS

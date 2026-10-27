@@ -22,7 +22,7 @@ repair/removal actions, license attribution and the measurement's app version.
 
 Run Benchmark for a model to populate its numbers. Reports are saved independently, so
 running another model does not overwrite its measurements. Android can also show the latest
-pre-0.2.0 benchmark report. Results from different model weight revisions are not reused.
+pre-0.1.6 benchmark report. Results from different model weight revisions are not reused.
 A dash means no matching device measurement exists; it is not a zero error rate or speed.
 
 WER is summed edit errors divided by summed reference words. RTF is summed processing
