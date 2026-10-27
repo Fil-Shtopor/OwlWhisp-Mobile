@@ -20,6 +20,7 @@ class MobileFeaturesInstrumentation : Instrumentation() {
         val app = targetContext.applicationContext as OwlWhispApp
         val saved = app.preferences.all.toMap()
         var host: PanelPreviewActivity? = null
+        var outcome = Activity.RESULT_CANCELED
         val files = listOf(File(targetContext.filesDir, "benchmark.json"),
             File(targetContext.filesDir, "benchmarks/moonshine-tiny-en.json"), File(targetContext.filesDir, "benchmarks/gigaam-v3-ru.json"))
         val backups = files.associateWith { if (it.isFile) it.readBytes() else null }
@@ -142,9 +143,9 @@ class MobileFeaturesInstrumentation : Instrumentation() {
                 check(AppRelease.parse(metadata, "0.0.0")?.asset != null)
                 checks.put("live GitHub release metadata")
             }
-            result.putString("checks", checks.toString()); finish(Activity.RESULT_OK, result)
+            result.putString("checks", checks.toString()); outcome = Activity.RESULT_OK
         } catch (error: Throwable) {
-            result.putString("failure", error.stackTraceToString()); finish(Activity.RESULT_CANCELED, result)
+            result.putString("failure", error.stackTraceToString())
         } finally {
             runOnMainSync {
                 app.cancelCurrent()
@@ -156,10 +157,11 @@ class MobileFeaturesInstrumentation : Instrumentation() {
                     is Long -> editor.putLong(key, value)
                     is Float -> editor.putFloat(key, value)
                 } }
-                editor.apply()
+                check(editor.commit())
                 host?.finish()
             }
             backups.forEach { (file, bytes) -> if (bytes == null) file.delete() else { file.parentFile?.mkdirs(); file.writeBytes(bytes) } }
         }
+        finish(outcome, result)
     }
 }
