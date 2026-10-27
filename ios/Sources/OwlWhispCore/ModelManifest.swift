@@ -47,6 +47,7 @@ public struct ModelManifest: Codable, Sendable, Identifiable {
         public let files: [ModelFile]
     }
     public let id: String
+    public let version: String?
     public let name: String
     public let license: String
     public let attribution: String

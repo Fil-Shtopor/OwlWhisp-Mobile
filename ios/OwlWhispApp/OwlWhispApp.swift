@@ -7,14 +7,15 @@ import OwlWhispCore
 @MainActor
 struct OwlWhispApp: App {
     @StateObject private var model = TranscriptionModel()
+    @StateObject private var updates = AppUpdateModel()
     @Environment(\.scenePhase) private var scenePhase
     var body: some Scene {
         WindowGroup {
-            ContentView(model: model)
+            ContentView(model: model, updates: updates)
                 .preferredColorScheme(.dark)
                 .tint(Color(red: 0.54, green: 0.71, blue: 0.98))
-                .task { await model.refresh() }
-                .onChange(of: scenePhase) { phase in if phase == .background { model.backgrounded() } }
+                .task { await model.refresh(); updates.onLaunch() }
+                .onChange(of: scenePhase) { phase in if phase == .background { model.backgrounded() }; if phase == .active { updates.onLaunch() } }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { model.audioInterrupted($0) }
         }
     }
@@ -23,6 +24,8 @@ struct OwlWhispApp: App {
 @MainActor
 private struct ContentView: View {
     @ObservedObject var model: TranscriptionModel
+    @ObservedObject var updates: AppUpdateModel
+    @State private var showingUpdate = false
     private let background = Color(red: 17/255, green: 19/255, blue: 26/255)
     var body: some View {
         TabView {
@@ -34,7 +37,18 @@ private struct ContentView: View {
                             Text("OwlWhisp").font(.largeTitle.bold())
                         }
                         Text(model.status).accessibilityAddTraits(.updatesFrequently)
-                        Text(model.selectedModel?.name ?? "").font(.footnote).foregroundStyle(.secondary)
+                        Text(model.modelName(model.selectedID)).font(.footnote).foregroundStyle(.secondary)
+                        if model.languageRoutingEnabled {
+                            Menu {
+                                ForEach(model.languageAssignments.keys.sorted(), id: \.self) { language in
+                                    let id = model.languageAssignments[language] ?? ""
+                                    Button(ModelGuide.languageName(language) + " - " + model.modelName(id) +
+                                           (model.downloaded.contains(id) ? "" : " (download first)")) { model.chooseLanguage(language) }
+                                        .disabled(!model.downloaded.contains(id))
+                                }
+                            } label: { Label(ModelGuide.languageName(model.routingLanguage), systemImage: "globe") }
+                                .disabled(model.phase != .idle)
+                        }
                         Button(action: model.toggleRecording) {
                             Label(model.phase == .recording ? "Stop dictation" : "Start dictation",
                                   systemImage: model.phase == .recording ? "stop.fill" : "mic.fill")
@@ -53,6 +67,7 @@ private struct ContentView: View {
             }.tabItem { Label("Dictate", systemImage: "mic") }
             NavigationStack {
                 Form {
+                    LanguageRoutingSettings(model: model)
                     Section("Recording") {
                         Picker("Recording limit", selection: $model.recordingLimitSeconds) {
                             ForEach(RecordingPolicy.limits, id: \.self) { seconds in
@@ -64,6 +79,9 @@ private struct ContentView: View {
                     }
                     Section("Speech models") {
                         NavigationLink("Manage speech models") { MobileModelList(model: model) }
+                    }
+                    Section("App updates") {
+                        NavigationLink("App updates") { UpdateSettings(updates: updates) }
                     }
                     Section("Memory") {
                         Text("The model is released after each dictation.")
@@ -105,7 +123,7 @@ private struct ContentView: View {
             }.tabItem { Label("Benchmark", systemImage: "chart.bar") }
             NavigationStack {
                 Form {
-                    Section("OwlWhisp Mobile 0.1.5") {
+                    Section("OwlWhisp Mobile 0.2.0") {
                         Text(UIDevice.current.model + " · iOS " + UIDevice.current.systemVersion)
                         Text("CPU · 2 threads · sherpa-onnx 1.13.6")
                         Text(model.selectedModel?.name ?? "No model selected")
@@ -119,6 +137,80 @@ private struct ContentView: View {
                 }.navigationTitle("Diagnostics")
             }.tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let update = updates.available, !updates.dismissed {
+                HStack {
+                    Button("OwlWhisp \(update.version) is available") { showingUpdate = true }.font(.subheadline)
+                    Spacer()
+                    Button { updates.dismissed = true } label: { Image(systemName: "xmark").accessibilityLabel("Later") }
+                }.padding(12).background(Color(red: 26/255, green: 29/255, blue: 39/255))
+            }
+        }
+        .sheet(isPresented: $showingUpdate) { NavigationStack { UpdateSettings(updates: updates) } }
+    }
+}
+
+@MainActor
+private struct LanguageRoutingSettings: View {
+    @ObservedObject var model: TranscriptionModel
+    var body: some View {
+        Section("Language models") {
+            Toggle("Experimental language switch", isOn: Binding(get: { model.languageRoutingEnabled }, set: model.setRoutingEnabled))
+                .disabled(model.phase != .idle)
+            if model.languageRoutingEnabled {
+                ForEach(model.languageAssignments.keys.sorted(), id: \.self) { language in
+                    HStack {
+                        Picker(ModelGuide.languageName(language), selection: Binding(
+                            get: { model.languageAssignments[language] ?? "" },
+                            set: { model.assignLanguage(language, id: $0) })) {
+                                ForEach(model.models.filter { $0.languages.contains(language) }) { item in
+                                    Text(model.modelName(item.id) + (model.downloaded.contains(item.id) ? "" : " (not downloaded)")).tag(item.id)
+                                }
+                            }
+                        Button(role: .destructive) { model.assignLanguage(language, id: nil) } label: {
+                            Image(systemName: "minus.circle").accessibilityLabel("Remove " + ModelGuide.languageName(language))
+                        }
+                    }.disabled(model.phase != .idle)
+                }
+                Menu("Add language") {
+                    ForEach(model.allLanguages.filter { model.languageAssignments[$0] == nil }, id: \.self) { language in
+                        Button(ModelGuide.languageName(language)) {
+                            if let item = model.models.first(where: { $0.languages.contains(language) }) { model.assignLanguage(language, id: item.id) }
+                        }
+                    }
+                }.disabled(model.phase != .idle)
+                Text("Choose a model per language. Switch between recordings. Multilingual models may still detect the spoken language.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+@MainActor
+private struct UpdateSettings: View {
+    @ObservedObject var updates: AppUpdateModel
+    var body: some View {
+        Form {
+            Section {
+                Text("Installed version: " + (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""))
+                Toggle("Check for updates on launch", isOn: $updates.automatic)
+                Button("Check for updates") { updates.check() }.disabled(updates.checking)
+                Text(updates.status).font(.footnote).foregroundStyle(.secondary)
+            }
+            if let release = updates.available {
+                Section("Version " + release.version.description) {
+                    if let ipa = release.ipa {
+                        Link("Download IPA (signing required)", destination: ipa)
+                    }
+                    Link("Release page", destination: release.page)
+                    Text("Sign the new IPA with your Apple account, then install it over the existing app. Personal signing is required for each update.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    DisclosureGroup("Release notes") { Text(release.notes).font(.footnote).textSelection(.enabled) }
+                }
+            } else {
+                Section { Link("View releases", destination: AppRelease.page) }
+            }
+        }.navigationTitle("App updates")
     }
 }
 
@@ -127,23 +219,92 @@ private struct MobileModelList: View {
     @ObservedObject var model: TranscriptionModel
     var body: some View {
         Form {
-            Section { Text(model.status) }
-            ForEach(model.models) { item in
-                Section(item.name) {
-                    Text(String(item.languages.count) + " languages ? " + String(item.downloadBytes / 1024 / 1024) + " MiB")
-                    Text(model.downloaded.contains(item.id) ? "Downloaded" : "Not downloaded")
-                    Button(model.selectedID == item.id ? "Selected" : "Select") { model.selectModel(item.id) }.disabled(model.phase != .idle)
-                    Button(model.downloaded.contains(item.id) ? "Verify / repair" : "Download") { model.install(item.id) }.disabled(model.phase != .idle)
-                    if model.downloaded.contains(item.id) {
-                        Button("Remove model", role: .destructive) { model.deleteModel(item.id) }.disabled(model.phase != .idle)
+            Section {
+                NavigationLink("Find a model for your phone and language") { ModelGuideView(model: model) }
+                Text(model.status).font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Speech models") {
+                ForEach(model.models) { item in
+                    DisclosureGroup {
+                        ModelDetails(model: model, item: item)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(model.modelName(item.id)).font(.headline)
+                                if model.selectedID == item.id { Image(systemName: "checkmark.circle.fill").accessibilityLabel("Active") }
+                            }
+                            let languages = item.languages.count > 5 ? String(item.languages.count) + " languages" : item.languages.map { $0.uppercased() }.joined(separator: ", ")
+                            Text(languages + " \u{00b7} " + String(item.downloadBytes / 1024 / 1024) + " MiB \u{00b7} " +
+                                 (model.downloaded.contains(item.id) ? "Downloaded" : "Not downloaded"))
+                                .font(.caption).foregroundStyle(.secondary)
+                            Text(model.metrics(item.id)).font(.caption).foregroundStyle(.secondary)
+                        }.padding(.vertical, 4)
                     }
-                    Text(item.license + " ? " + item.attribution).font(.footnote)
                 }
             }
             if model.phase == .downloading { ProgressView(value: model.progress) }
-            Section("Additional Android models") {
-                Text("Redux, Whistle and Phonon-2 use separate Android runtimes. Their iOS adapters are not available.")
-            }
         }.navigationTitle("Models")
+    }
+}
+
+@MainActor
+private struct ModelDetails: View {
+    @ObservedObject var model: TranscriptionModel
+    let item: ModelManifest
+    var body: some View {
+        Text(model.guide?.purpose(item.id) ?? "").font(.footnote)
+        Text(item.languages.map(ModelGuide.languageName).joined(separator: ", ")).font(.caption).foregroundStyle(.secondary)
+        Button(model.languageRoutingEnabled ? "Use for " + model.routingLanguage.uppercased() : "Use model") { model.selectModel(item.id) }
+            .disabled(model.phase != .idle || (model.languageRoutingEnabled && !item.languages.contains(model.routingLanguage)))
+        Button(model.downloaded.contains(item.id) ? "Verify / repair" : "Download") { model.install(item.id) }.disabled(model.phase != .idle)
+        if model.downloaded.contains(item.id) {
+            Button("Remove model", role: .destructive) { model.deleteModel(item.id) }.disabled(model.phase != .idle)
+        }
+        if let record = model.benchmarkRecords[item.id] {
+            Text("Device benchmark \u{00b7} app " + record.app_version + "\n" + record.metrics).font(.caption).foregroundStyle(.secondary)
+        } else {
+            Text("Select this model and run Benchmark to measure WER and RTF.").font(.caption).foregroundStyle(.secondary)
+        }
+        DisclosureGroup("License and attribution") { Text(item.license + "\n" + item.attribution).font(.caption) }
+    }
+}
+
+@MainActor
+private struct ModelGuideView: View {
+    @ObservedObject var model: TranscriptionModel
+    @State private var language = "en"
+    @State private var profile = "device"
+    @State private var priority = "everyday"
+    var body: some View {
+        Form {
+            Section {
+                Picker("Language", selection: $language) {
+                    ForEach(model.allLanguages, id: \.self) { Text(ModelGuide.languageName($0)).tag($0) }
+                }
+                Picker("Phone profile", selection: $profile) {
+                    Text("This phone").tag("device")
+                    ForEach(model.guide?.profiles ?? []) { Text($0.name).tag($0.id) }
+                }
+                if profile == "device" {
+                    Text(UIDevice.current.model + String(format: " \u{00b7} %.1f GiB RAM", model.memoryGiB)).font(.caption).foregroundStyle(.secondary)
+                } else if let selected = model.guide?.profiles.first(where: { $0.id == profile }) {
+                    Text(selected.examples).font(.caption).foregroundStyle(.secondary)
+                }
+                Picker("Priority", selection: $priority) {
+                    Text("Everyday dictation").tag("everyday")
+                    Text("Smallest download").tag("compact")
+                    Text("Multilingual dictation").tag("coverage")
+                }
+            }
+            if let guide = model.guide {
+                let tier = priority == "compact" ? "compact" : profile == "device" ? ModelGuide.tier(memoryGiB: model.memoryGiB) : guide.profiles.first { $0.id == profile }?.tier ?? "balanced"
+                Section("Starting points") {
+                    ForEach(guide.suggest(language: language, tier: tier, coverage: priority == "coverage", available: model.models, smallest: priority == "compact")) { item in
+                        DisclosureGroup(model.modelName(item.id)) { ModelDetails(model: model, item: item) }
+                    }
+                    Text(guide.basis).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+        }.navigationTitle("Model guide")
     }
 }

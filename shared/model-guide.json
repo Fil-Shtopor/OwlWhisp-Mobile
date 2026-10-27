@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "basis": "Starting points based on language support, download size and memory class. Run Benchmark on your phone to compare.",
+  "models": [
+    {
+      "id": "parakeet-tdt-0.6b-v3",
+      "name": "Parakeet v3",
+      "purpose": "General dictation across 25 European languages.",
+      "source": "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3"
+    },
+    {
+      "id": "parakeet-redux",
+      "name": "Parakeet Redux",
+      "purpose": "Smaller download for 25 European languages. Android only.",
+      "source": "https://huggingface.co/moondream/parakeet-redux"
+    },
+    {
+      "id": "whistle",
+      "name": "Whistle",
+      "purpose": "Smallest download; seven European languages. ARM64 Android only.",
+      "source": "https://huggingface.co/Cactus-Compute/whistle"
+    },
+    {
+      "id": "phonon-2",
+      "name": "Phonon-2",
+      "purpose": "English-only alternative. Android only.",
+      "source": "https://huggingface.co/eschmidbauer/phonon-2-c"
+    },
+    {
+      "id": "gigaam-v3-ru",
+      "name": "GigaAM v3",
+      "purpose": "Russian dictation with punctuation.",
+      "source": "https://huggingface.co/ai-sage/GigaAM-v3"
+    },
+    {
+      "id": "parakeet-tdt-ctc-110m-en",
+      "name": "Parakeet 110M",
+      "purpose": "English-only Parakeet alternative.",
+      "source": "https://huggingface.co/nvidia/parakeet-tdt_ctc-110m"
+    },
+    {
+      "id": "whisper-turbo",
+      "name": "Whisper Turbo",
+      "purpose": "Broad language coverage; a larger download.",
+      "source": "https://huggingface.co/openai/whisper-large-v3-turbo"
+    },
+    {
+      "id": "moonshine-tiny-en",
+      "name": "Moonshine Tiny",
+      "purpose": "Compact English model.",
+      "source": "https://huggingface.co/moonshine-ai/moonshine-tiny"
+    },
+    {
+      "id": "sense-voice-small",
+      "name": "SenseVoice Small",
+      "purpose": "Chinese, English, Japanese, Korean and Cantonese.",
+      "source": "https://huggingface.co/FunAudioLLM/SenseVoiceSmall"
+    },
+    {
+      "id": "qwen3-asr-0.6b",
+      "name": "Qwen3-ASR",
+      "purpose": "An alternative for 30 languages; a larger download.",
+      "source": "https://huggingface.co/Qwen/Qwen3-ASR-0.6B"
+    },
+    {
+      "id": "omnilingual-300m",
+      "name": "Omnilingual 300M",
+      "purpose": "Additional language coverage; check the supported language list.",
+      "source": "https://huggingface.co/csukuangfj/sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-int8-2025-11-12"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "compact",
+      "name": "Compact phone",
+      "tier": "compact",
+      "examples": "Galaxy A15 (4 GB configuration), older or memory-constrained phones",
+      "sources": [
+        "https://image-us.samsung.com/SamsungUS/samsungbusiness/mobile/phones/galaxy-a/HHP449741_A15_5G_Spec_Sheet.pdf"
+      ]
+    },
+    {
+      "id": "balanced",
+      "name": "Everyday phone",
+      "tier": "balanced",
+      "examples": "Galaxy A55, Pixel 8a, iPhone 13 / 14",
+      "sources": [
+        "https://api.samsungmobilepress.com/press-releases/samsung-galaxy-a55-5g-and-galaxy-a35-5g-awesome-innovations-and-security-engineered-for-everyone",
+        "https://support.google.com/pixelphone/answer/7158570?hl=en"
+      ]
+    },
+    {
+      "id": "roomy",
+      "name": "Flagship phone",
+      "tier": "roomy",
+      "examples": "Galaxy S24 / S25 Ultra, Pixel 9 Pro, recent iPhone Pro",
+      "sources": [
+        "https://news.samsung.com/uk/enter-the-new-era-of-mobile-ai-with-samsung-galaxy-s24-series",
+        "https://support.google.com/pixelphone/answer/7158570?hl=en"
+      ]
+    }
+  ],
+  "recommendations": {
+    "ru": {
+      "compact": [
+        "gigaam-v3-ru",
+        "parakeet-redux",
+        "parakeet-tdt-0.6b-v3"
+      ],
+      "balanced": [
+        "gigaam-v3-ru",
+        "parakeet-tdt-0.6b-v3",
+        "parakeet-redux"
+      ],
+      "roomy": [
+        "gigaam-v3-ru",
+        "parakeet-tdt-0.6b-v3",
+        "whisper-turbo"
+      ]
+    },
+    "en": {
+      "compact": [
+        "moonshine-tiny-en",
+        "whistle",
+        "parakeet-redux"
+      ],
+      "balanced": [
+        "moonshine-tiny-en",
+        "parakeet-tdt-ctc-110m-en",
+        "parakeet-tdt-0.6b-v3"
+      ],
+      "roomy": [
+        "parakeet-tdt-0.6b-v3",
+        "parakeet-tdt-ctc-110m-en",
+        "moonshine-tiny-en"
+      ]
+    },
+    "east_asian": {
+      "compact": [
+        "sense-voice-small",
+        "whisper-turbo",
+        "qwen3-asr-0.6b"
+      ],
+      "balanced": [
+        "sense-voice-small",
+        "whisper-turbo",
+        "qwen3-asr-0.6b"
+      ],
+      "roomy": [
+        "sense-voice-small",
+        "qwen3-asr-0.6b",
+        "whisper-turbo"
+      ]
+    },
+    "default": {
+      "compact": [
+        "whistle",
+        "parakeet-redux",
+        "parakeet-tdt-0.6b-v3",
+        "omnilingual-300m",
+        "whisper-turbo",
+        "qwen3-asr-0.6b"
+      ],
+      "balanced": [
+        "parakeet-tdt-0.6b-v3",
+        "sense-voice-small",
+        "whisper-turbo",
+        "omnilingual-300m",
+        "qwen3-asr-0.6b",
+        "whistle",
+        "parakeet-redux"
+      ],
+      "roomy": [
+        "parakeet-tdt-0.6b-v3",
+        "whisper-turbo",
+        "qwen3-asr-0.6b",
+        "omnilingual-300m",
+        "sense-voice-small",
+        "whistle",
+        "parakeet-redux"
+      ]
+    }
+  }
+}

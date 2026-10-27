@@ -53,6 +53,21 @@ class VoiceInputService : InputMethodService() {
                 pauseDelivery()
                 startActivity(Intent(this, MainActivity::class.java).putExtra("tab", 1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             },
+            language = { anchor ->
+                if (!app.busy) android.widget.PopupMenu(this, anchor).apply {
+                    app.languageAssignments.toSortedMap().forEach { (language, id) ->
+                        val repository = app.models.firstOrNull { it.id == id && it.supported && language in it.languages }
+                        if (repository != null) {
+                            menu.add(ModelGuide.languageName(language) + " - " + app.guide.name(id) +
+                                if (repository.present()) "" else " (download first)").apply {
+                                isCheckable = true; isChecked = app.routingLanguage == language
+                                setOnMenuItemClickListener { app.chooseLanguage(language); true }
+                            }
+                        }
+                    }
+                    show()
+                }
+            },
             resume = {
                 if (delivery.confirm(identity(), currentInputConnection?.let(EditorAnchor::read))) render()
             }
@@ -88,7 +103,8 @@ class VoiceInputService : InputMethodService() {
             else -> null
         }
         panel?.render(app.state, app.model.name, app.model.present(), VoiceKeyboard.microphoneGranted(this),
-            app.state.phase == Phase.RECORDING, hint, waiting && same, app.liveTextInsertion)
+            app.state.phase == Phase.RECORDING, hint, waiting && same, app.liveTextInsertion,
+            if (app.routingEnabled) app.routingLanguage.uppercase(java.util.Locale.ROOT) + " \u2304" else null)
     }
     private fun pauseDelivery() { delivery.suspend() }
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {

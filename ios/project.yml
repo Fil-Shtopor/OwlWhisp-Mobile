@@ -9,8 +9,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.1.5"
-    CURRENT_PROJECT_VERSION: "6"
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "7"
 targets:
   OwlWhispMobile:
     type: application
@@ -22,6 +22,8 @@ targets:
         buildPhase: resources
       - path: ../shared/benchmark
         type: folder
+        buildPhase: resources
+      - path: ../shared/model-guide.json
         buildPhase: resources
     dependencies:
       - package: OwlWhispCore

@@ -17,7 +17,52 @@ class OwlWhispApp : Application() {
     val main = Handler(Looper.getMainLooper())
     val preferences by lazy { getSharedPreferences("owlwhisp", MODE_PRIVATE) }
     val models by lazy { ModelRepository.catalog(this) }
-    val model: ModelRepository get() = models.firstOrNull { it.id == preferences.getString("model", "") } ?: models.first()
+    val guide by lazy { ModelGuide(this) }
+    val benchmarks by lazy { BenchmarkStore(this) }
+    val updates by lazy { AppUpdates(this) }
+    private val manualModel: ModelRepository get() = models.firstOrNull { it.id == preferences.getString("model", "") } ?: models.first()
+    private val routingModels get() = models.map { LanguageRouting.Model(it.id, it.languages, it.supported) }
+    val routingEnabled get() = preferences.getBoolean("language_routing", false)
+    val routingLanguage get() = preferences.getString("routing_language", "en").orEmpty()
+    val languageAssignments: Map<String, String> get() {
+        val saved = preferences.getString("language_models", null)
+        if (saved != null) return runCatching {
+            val json = org.json.JSONObject(saved)
+            json.keys().asSequence().associateWith { json.getString(it) }
+        }.getOrDefault(emptyMap())
+        return mapOf("en" to (manualModel.takeIf { "en" in it.languages }?.id ?: "moonshine-tiny-en"),
+            "ru" to (manualModel.takeIf { "ru" in it.languages }?.id ?: "gigaam-v3-ru"))
+    }
+    val model: ModelRepository get() {
+        val id = LanguageRouting.resolve(routingEnabled, routingLanguage, languageAssignments, manualModel.id, routingModels)
+        return models.first { it.id == id }
+    }
+    fun setRoutingEnabled(enabled: Boolean) {
+        if (busy) return
+        preferences.edit().putBoolean("language_routing", enabled).apply()
+        if (enabled && routingLanguage !in languageAssignments) {
+            preferences.edit().putString("routing_language", languageAssignments.keys.sorted().firstOrNull() ?: "en").apply()
+        }
+        unload(); refresh()
+    }
+    fun assignLanguage(language: String, id: String?) {
+        if (busy) return
+        require(id == null || LanguageRouting.assign(language, id, routingModels))
+        val assignments = languageAssignments.toMutableMap()
+        if (id == null) assignments.remove(language) else assignments[language] = id
+        val edit = preferences.edit().putString("language_models", org.json.JSONObject(assignments as Map<*, *>).toString())
+        if (assignments.isEmpty()) edit.putBoolean("language_routing", false)
+        if (routingLanguage !in assignments) edit.putString("routing_language", assignments.keys.sorted().firstOrNull() ?: "en")
+        edit.apply(); unload(); refresh()
+    }
+    fun chooseLanguage(language: String): Boolean {
+        if (busy || !routingEnabled) return false
+        val id = languageAssignments[language] ?: return false
+        val next = models.firstOrNull { it.id == id && it.supported && language in it.languages } ?: return false
+        if (!next.present()) { publish(AppState(Phase.ERROR, "Download " + guide.name(next.id) + " in Models first")); return false }
+        preferences.edit().putString("routing_language", language).apply()
+        unload(); refresh(); return true
+    }
     val client by lazy { InferenceClient(this) }
     private val listeners = mutableSetOf<(AppState) -> Unit>()
     var state = AppState(Phase.IDLE, "Ready")
@@ -61,8 +106,12 @@ class OwlWhispApp : Application() {
     }
     fun selectModel(id: String) {
         if (busy || models.none { it.id == id && it.supported }) return
-        preferences.edit().putString("model", id).apply()
-        unload()
+        if (routingEnabled) {
+            if (!LanguageRouting.assign(routingLanguage, id, routingModels)) {
+                publish(AppState(Phase.ERROR, "This model does not support " + ModelGuide.languageName(routingLanguage))); return
+            }
+            assignLanguage(routingLanguage, id)
+        } else { preferences.edit().putString("model", id).apply(); unload(); refresh() }
     }
     fun setWarmSeconds(seconds: Int) {
         require(seconds in listOf(0, 30, 300))

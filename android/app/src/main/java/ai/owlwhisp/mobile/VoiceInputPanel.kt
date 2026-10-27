@@ -29,8 +29,16 @@ class VoiceInputPanel(
     dictate: () -> Unit,
     keyboard: () -> Unit,
     settings: () -> Unit,
-    resume: () -> Unit = {}
+    resume: () -> Unit = {},
+    language: (View) -> Unit = {}
 ) : LinearLayout(context) {
+    private val languageButton = text(13f, Palette.accent).apply {
+        minWidth = dp(64); minHeight = dp(48); isClickable = true; isFocusable = true
+        contentDescription = "Switch dictation language"; visibility = GONE
+        background = ripple(circle(intArrayOf(Palette.raised)))
+        setOnClickListener { language(it) }
+    }
+    private lateinit var brand: LinearLayout
     private val headline = text(17f, Palette.text)
     private val detail = text(12f, Palette.dim)
     private val microphone = iconButton(R.drawable.ic_voice_microphone, "Dictate", 34)
@@ -66,9 +74,10 @@ class VoiceInputPanel(
             cornerRadii = floatArrayOf(dp(24).toFloat(), dp(24).toFloat(), dp(24).toFloat(), dp(24).toFloat(), 0f, 0f, 0f, 0f)
             setStroke(dp(1), Color.rgb(42, 48, 63))
         }
-        val brand = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
+        brand = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
         brand.addView(ImageView(context).apply { setImageResource(R.drawable.owlwhisp); importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO }, LayoutParams(dp(24), dp(24)))
         brand.addView(text(13f, Palette.text).apply { text = "OwlWhisp"; gravity = Gravity.START or Gravity.CENTER_VERTICAL; setTypeface(null, Typeface.BOLD); setPadding(dp(8), 0, 0, 0) }, LayoutParams(0, dp(28), 1f))
+        brand.addView(languageButton, LayoutParams(-2, dp(48)))
         addView(brand, LayoutParams(-1, dp(28)))
         headline.apply { setPadding(0, dp(8), 0, dp(2)); accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_POLITE }
         addView(headline, LayoutParams(-1, -2))
@@ -97,9 +106,14 @@ class VoiceInputPanel(
         setOnApplyWindowInsetsListener { _, insets -> latestInsets = insets; removeCallbacks(updateInsets); post(updateInsets); insets }
     }
 
-    fun render(state: AppState, modelName: String, modelReady: Boolean, microphoneAllowed: Boolean, ownsRecording: Boolean, deliveryHint: String? = null, canResume: Boolean = false, liveText: Boolean = true) {
+    fun render(state: AppState, modelName: String, modelReady: Boolean, microphoneAllowed: Boolean, ownsRecording: Boolean, deliveryHint: String? = null, canResume: Boolean = false, liveText: Boolean = true, languageLabel: String? = null) {
         val listening = state.phase == Phase.RECORDING && ownsRecording
         val busy = state.phase in setOf(Phase.PROCESSING, Phase.DOWNLOADING, Phase.BENCHMARK) || (state.phase == Phase.RECORDING && !ownsRecording)
+        languageButton.visibility = if (languageLabel == null) GONE else VISIBLE
+        languageButton.text = languageLabel
+        languageButton.isEnabled = state.phase !in setOf(Phase.RECORDING, Phase.PROCESSING, Phase.DOWNLOADING, Phase.BENCHMARK)
+        val brandHeight = dp(if (languageLabel == null) 28 else 48)
+        if (brand.layoutParams.height != brandHeight) brand.layoutParams = brand.layoutParams.apply { height = brandHeight }
         val ready = modelReady && microphoneAllowed
         if (listening != recording) {
             recording = listening
@@ -197,6 +211,8 @@ class VoiceInputPanel(
         }
         return JSONObject().put("panel", bounds(this)).put("microphone", bounds(microphone))
             .put("keyboard", bounds(keyboardButton)).put("settings", bounds(settingsButton))
+            .put("language_visible", languageButton.visibility == VISIBLE).put("language_enabled", languageButton.isEnabled)
+            .put("language", bounds(languageButton)).put("language_label", languageButton.text)
             .put("navigation_bottom", navBottom).put("bottom_padding", paddingBottom)
             .put("decor", bounds(imeWindow.decorView)).put("recording", recording)
             .put("microphone_enabled", microphone.isEnabled).put("resume_visible", resumeButton.visibility == VISIBLE).put("resume", bounds(resumeButton))

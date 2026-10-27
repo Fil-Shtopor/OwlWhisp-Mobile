@@ -5,13 +5,13 @@ Offline voice input for Android and iPhone, in a separate repository from
 
 ## Downloads
 
-**OwlWhisp Mobile 0.1.5** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.5).
+**OwlWhisp Mobile 0.2.0** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.2.0).
 
 | Platform | Application download | Installation |
 |---|---|---|
-| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.5/OwlWhisp-Mobile-0.1.5-android.apk)** | Signed APK; updates existing OwlWhisp installations |
-| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.5/OwlWhisp-Mobile-0.1.5-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
-| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.5/OwlWhisp-Mobile-0.1.5-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
+| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.2.0/OwlWhisp-Mobile-0.2.0-android.apk)** | Signed APK; updates existing OwlWhisp installations |
+| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.2.0/OwlWhisp-Mobile-0.2.0-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
+| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.2.0/OwlWhisp-Mobile-0.2.0-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
 
 Models download separately. The iPhone IPA is unsigned and is not a TestFlight/App Store
 release. A free Apple account can be used for personal signing. Checksums and build provenance
@@ -20,9 +20,22 @@ are available in the release assets.
 The default model is **ordinary NVIDIA Parakeet TDT 0.6B v3 INT8**, with 25 languages,
 including Russian. Models download separately from the APK.
 
+## Updates and model shortcuts
+
+- **Settings > App updates:** automatic stable-release checks and manual checks.
+  Android verifies and downloads the APK, then opens the system installer. iOS offers the
+  unsigned IPA for personal signing. Install 0.2.0 manually once to enable future checks.
+  [Update behavior](docs/app-updates.md).
+- **Settings > Language models > Experimental language switch:** assign a model per
+  language, then switch in the Android voice panel or iOS Dictate between recordings.
+  Disabled by default; the button is hidden while disabled.
+- **Models:** compact per-model WER/RTF measurements by language, plus a phone/language
+  guide with everyday, smallest-download and multilingual priorities.
+  [Choosing a model](docs/model-selection.md).
+
 ## Android
 
-Version 0.1.5 includes guided keyboard setup and a regular selectable voice IME.
+Version 0.2.0 includes guided keyboard setup and a regular selectable voice IME.
 [Voice panel preview](docs/validation/android-voice-panel-ready.png).
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.

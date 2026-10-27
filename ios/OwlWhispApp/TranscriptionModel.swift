@@ -36,7 +36,50 @@ final class TranscriptionModel: ObservableObject {
     }
     @Published var models: [ModelManifest] = []
     @Published var downloaded: Set<String> = []
-    @Published var selectedID = UserDefaults.standard.string(forKey: "selectedModel") ?? "parakeet-tdt-0.6b-v3"
+    @Published private var manualModelID = UserDefaults.standard.string(forKey: "selectedModel") ?? "parakeet-tdt-0.6b-v3"
+    @Published private(set) var languageRoutingEnabled = UserDefaults.standard.bool(forKey: "languageRouting")
+    @Published private(set) var routingLanguage = UserDefaults.standard.string(forKey: "routingLanguage") ?? "en"
+    @Published private(set) var languageAssignments = UserDefaults.standard.dictionary(forKey: "languageModels") as? [String: String] ?? [:]
+    @Published private(set) var benchmarkRecords: [String: BenchmarkRecord] = [:]
+    private(set) var guide: ModelGuide?
+    private var history: BenchmarkHistory?
+    private var routingModels: [String: [String]] { Dictionary(uniqueKeysWithValues: models.map { ($0.id, $0.languages) }) }
+    var selectedID: String {
+        LanguageRouting.resolve(enabled: languageRoutingEnabled, language: routingLanguage,
+            assignments: languageAssignments, manual: manualModelID, models: routingModels)
+    }
+    var allLanguages: [String] { Set(models.flatMap(\.languages)).sorted { ModelGuide.languageName($0) < ModelGuide.languageName($1) } }
+    func modelName(_ id: String) -> String { guide?.name(id) ?? models.first { $0.id == id }?.name ?? id }
+    func metrics(_ id: String) -> String { benchmarkRecords[id]?.metrics ?? "WER \u{2014} \u{00b7} RTF \u{2014}" }
+    var memoryGiB: Double { Double(ProcessInfo.processInfo.physicalMemory) / 1073741824 }
+    private func persistRouting() {
+        UserDefaults.standard.set(languageRoutingEnabled, forKey: "languageRouting")
+        UserDefaults.standard.set(routingLanguage, forKey: "routingLanguage")
+        UserDefaults.standard.set(languageAssignments, forKey: "languageModels")
+        ready = downloaded.contains(selectedID)
+        Task { await refresh() }
+    }
+    func setRoutingEnabled(_ enabled: Bool) {
+        guard phase == .idle else { return }
+        languageRoutingEnabled = enabled
+        if languageAssignments[routingLanguage] == nil { routingLanguage = languageAssignments.keys.sorted().first ?? "en" }
+        persistRouting()
+    }
+    func assignLanguage(_ language: String, id: String?) {
+        guard phase == .idle else { return }
+        if let id, !LanguageRouting.canAssign(language: language, id: id, models: routingModels) { return }
+        languageAssignments[language] = id
+        if languageAssignments.isEmpty { languageRoutingEnabled = false }
+        if languageAssignments[routingLanguage] == nil { routingLanguage = languageAssignments.keys.sorted().first ?? "en" }
+        persistRouting()
+    }
+    func chooseLanguage(_ language: String) {
+        guard phase == .idle, languageRoutingEnabled, let id = languageAssignments[language],
+              LanguageRouting.canAssign(language: language, id: id, models: routingModels) else { return }
+        guard downloaded.contains(id) else { status = "Download " + modelName(id) + " in Models first"; return }
+        routingLanguage = language
+        persistRouting()
+    }
     @Published var liveTextInsertion = UserDefaults.standard.object(forKey: "liveTextInsertion") as? Bool ?? true {
         didSet { UserDefaults.standard.set(liveTextInsertion, forKey: "liveTextInsertion") }
     }
@@ -68,7 +111,25 @@ final class TranscriptionModel: ObservableObject {
                 models.append(manifest)
                 stores[id] = ModelStore(manifest: manifest, directory: root.appendingPathComponent("models/" + id))
             }
-            if stores[selectedID] == nil { selectedID = "parakeet-tdt-0.6b-v3" }
+            if stores[manualModelID] == nil { manualModelID = "parakeet-tdt-0.6b-v3" }
+            if UserDefaults.standard.object(forKey: "languageModels") == nil {
+                let manual = models.first { $0.id == manualModelID }
+                languageAssignments = ["en": manual?.languages.contains("en") == true ? manualModelID : "moonshine-tiny-en",
+                                       "ru": manual?.languages.contains("ru") == true ? manualModelID : "gigaam-v3-ru"]
+            }
+            guard let guideURL = Bundle.main.url(forResource: "model-guide", withExtension: "json") else { throw ModelError.invalidManifest }
+            guide = try JSONDecoder().decode(ModelGuide.self, from: Data(contentsOf: guideURL))
+            let history = BenchmarkHistory(directory: root.appendingPathComponent("benchmarks"))
+            self.history = history
+            for model in models {
+                if let record = history.load(id: model.id, version: model.version ?? "") { benchmarkRecords[model.id] = record }
+            }
+            if let data = history.latestData(), let record = try? JSONDecoder().decode(BenchmarkRecord.self, from: data),
+               benchmarkRecords[record.model] != nil {
+                benchmarkReport = String(decoding: data, as: UTF8.self)
+                benchmarkSummary = record.summary
+                benchmarkModelName = modelName(record.model)
+            }
             guard let fixturesURL = Bundle.main.url(forResource: "fixtures", withExtension: "json", subdirectory: "benchmark")
             else { throw ModelError.invalidManifest }
             benchmarkFixtures = try JSONDecoder().decode([BenchmarkFixture].self, from: Data(contentsOf: fixturesURL))
@@ -86,10 +147,17 @@ final class TranscriptionModel: ObservableObject {
 
     func selectModel(_ id: String) {
         guard phase == .idle, stores[id] != nil else { return }
-        selectedID = id
-        UserDefaults.standard.set(id, forKey: "selectedModel")
-        ready = downloaded.contains(id)
-        Task { await refresh() }
+        if languageRoutingEnabled {
+            guard LanguageRouting.canAssign(language: routingLanguage, id: id, models: routingModels) else {
+                status = "This model does not support " + ModelGuide.languageName(routingLanguage); return
+            }
+            assignLanguage(routingLanguage, id: id)
+        } else {
+            manualModelID = id
+            UserDefaults.standard.set(id, forKey: "selectedModel")
+            ready = downloaded.contains(id)
+            Task { await refresh() }
+        }
     }
 
     func install(_ id: String? = nil) {
@@ -248,7 +316,7 @@ final class TranscriptionModel: ObservableObject {
                 let totals: [String: Any] = ["clips": summary.clipCount, "word_errors": summary.wordErrors,
                     "reference_words": summary.referenceWords, "wer": summary.wordErrorRate,
                     "audio_s": summary.audioSeconds, "elapsed_s": summary.elapsedSeconds, "rtf": summary.rtf]
-                let report: [String: Any] = ["model": store.manifest.id,
+                let report: [String: Any] = ["model": store.manifest.id, "model_version": store.manifest.version ?? "",
                     "app_version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
                     "device": UIDevice.current.model, "os": UIDevice.current.systemVersion,
                     "mode": "cold: verification + load + decode; 2 CPU threads",
@@ -256,9 +324,13 @@ final class TranscriptionModel: ObservableObject {
                     "rows": rows]
                 let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
                 guard generation == token else { return }
+                try history?.save(data)
+                if let record = history?.load(id: store.manifest.id, version: store.manifest.version ?? "") {
+                    benchmarkRecords[store.manifest.id] = record
+                }
                 benchmarkReport = String(decoding: data, as: UTF8.self)
                 benchmarkSummary = summary
-                benchmarkModelName = store.manifest.name
+                benchmarkModelName = modelName(store.manifest.id)
                 status = "Benchmark complete"
             } catch {
                 guard generation == token else { return }

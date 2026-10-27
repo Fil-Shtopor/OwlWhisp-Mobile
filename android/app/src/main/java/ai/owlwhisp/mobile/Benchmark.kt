@@ -85,7 +85,7 @@ object Benchmark {
             .put("memory_measurement", "Inference-process PSS sampled every 100 ms; sampled maximum, not a guaranteed allocation peak")
             .put("normalization", "Unicode letters and numbers, lowercase, punctuation removed, U+0451 folded to U+0435")
             .put("summary", summaryJSON(summary(rows))).put("rows", rows).toString(2)
-        File(context.filesDir, "benchmark.json").writeText(report)
+        BenchmarkStore(context).save(report)
         return report
     }
 }
