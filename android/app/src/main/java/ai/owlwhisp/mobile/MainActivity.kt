@@ -104,7 +104,9 @@ class MainActivity : Activity() {
     private fun showTab(index: Int) {
         transcript?.let { if (!app.busy) app.draftText = it.text.toString() }; savedText = app.draftText
         transcript = null; record = null; cancelRecord = null; liveInsertionSwitch = null
+        val changedTab = currentTab != index
         currentTab = index; content.removeAllViews(); actions.clear(); actionConditions.clear(); updateStatus = null; routingSwitch = null; title(tabs[index])
+        if (changedTab) (content.parent as? ScrollView)?.post { (content.parent as? ScrollView)?.scrollTo(0, 0) }
         when (index) {
             0 -> {
                 content.addView(label(app.guide.name(app.model.id), true))
@@ -286,14 +288,11 @@ class MainActivity : Activity() {
             repository.languages.joinToString(", ") { ModelGuide.languageName(it) } + measured +
             "\n\n" + repository.manifest.getString("license") + "\n" + repository.manifest.getString("attribution") +
             if (repository.supported) "" else "\n\nRequires an ARM64 phone."
-        val items = mutableListOf("Close")
-        if (repository.supported) items.add(if (repository.present()) "Verify / repair" else "Download")
-        if (repository.present()) items.add("Remove model")
         AlertDialog.Builder(this).setTitle(app.guide.name(repository.id)).setMessage(details)
-            .setPositiveButton(items[0], null)
+            .setPositiveButton("Close", null)
             .apply {
-                if (items.size > 1) setNeutralButton(items[1]) { _, _ -> app.installModel(repository) }
-                if (items.size > 2) setNegativeButton("Remove") { _, _ ->
+                if (repository.supported) setNeutralButton(if (repository.present()) "Verify / repair" else "Download") { _, _ -> app.installModel(repository) }
+                if (repository.present()) setNegativeButton("Remove") { _, _ ->
                     AlertDialog.Builder(this@MainActivity).setTitle("Remove " + app.guide.name(repository.id) + "?")
                         .setNegativeButton("Cancel", null).setPositiveButton("Remove") { _, _ -> app.deleteModel(repository) }.show()
                 }

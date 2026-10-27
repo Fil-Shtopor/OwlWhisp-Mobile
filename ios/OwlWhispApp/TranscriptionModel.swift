@@ -138,11 +138,15 @@ final class TranscriptionModel: ObservableObject {
 
     func refresh() async {
         guard let store, phase == .idle else { return }
+        let selection = selectedID
         for (id, item) in stores {
             if await item.present() { downloaded.insert(id) } else { downloaded.remove(id) }
         }
-        ready = await store.present()
-        status = ready ? "Ready · " + store.manifest.name : "Download a model in Models"
+        guard phase == .idle, selectedID == selection else { return }
+        let present = await store.present()
+        guard phase == .idle, selectedID == selection else { return }
+        ready = present
+        status = ready ? "Ready \u00b7 " + store.manifest.name : "Download a model in Models"
     }
 
     func selectModel(_ id: String) {
