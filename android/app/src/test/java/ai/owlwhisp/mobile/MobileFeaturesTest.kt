@@ -27,6 +27,12 @@ class MobileFeaturesTest {
         assertFalse(LanguageRouting.assign("en", "arm-only", models))
         assertEquals("manual", LanguageRouting.resolve(true, "en", mapOf("en" to "arm-only"), "manual", models))
     }
+    @Test fun nativeAvailabilityUsesTheBuildAbiRatherThanTranslationSupport() {
+        assertFalse(ModelAvailability.supports("whistle", listOf("x86_64", "arm64-v8a")))
+        assertTrue(ModelAvailability.supports("whistle", listOf("arm64-v8a", "armeabi-v7a")))
+        assertFalse(ModelAvailability.supports("whistle", emptyList()))
+        assertTrue(ModelAvailability.supports("redux", listOf("x86_64", "arm64-v8a")))
+    }
     @Test fun updateURLsStayOnGitHubHttpsServers() {
         assertTrue(UpdateNetwork.allowed("https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases"))
         assertTrue(UpdateNetwork.allowed("https://release-assets.githubusercontent.com/file?token=public-download"))

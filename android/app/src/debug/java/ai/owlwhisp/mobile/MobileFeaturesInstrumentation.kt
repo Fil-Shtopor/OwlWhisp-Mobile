@@ -102,6 +102,10 @@ class MobileFeaturesInstrumentation : Instrumentation() {
                 }
             }
             check(guide.recommend("ru", "balanced", false, app.models).first().id == "gigaam-v3-ru")
+            if (android.os.Build.SUPPORTED_ABIS.firstOrNull() != "arm64-v8a") {
+                check(!app.models.first { it.id == "whistle" }.supported)
+                check(guide.recommend("en", "compact", false, app.models, true).none { it.id == "whistle" })
+            }
             val small = guide.recommend("en", "compact", false, app.models, true).first()
             check(small.totalBytes == app.models.filter { it.supported && "en" in it.languages }.minOf { it.totalBytes })
             checks.put("phone/language suggestions filter platform support and match smallest-download priority")

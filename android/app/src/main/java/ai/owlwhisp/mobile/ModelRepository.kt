@@ -25,7 +25,7 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
     val engine = manifest.optString("engine", "sherpa")
     val recognition: JSONObject get() = manifest.getJSONObject("recognition")
     val languages = manifest.getJSONArray("languages").let { a -> (0 until a.length()).map { a.getString(it) } }
-    val supported = engine != "whistle" || android.os.Build.SUPPORTED_ABIS.contains("arm64-v8a")
+    val supported = ModelAvailability.supports(engine, android.os.Build.SUPPORTED_ABIS.toList())
     private val downloads = buildList<JSONObject> {
         val common = manifest.getJSONArray("common")
         for (i in 0 until common.length()) add(common.getJSONObject(i))
