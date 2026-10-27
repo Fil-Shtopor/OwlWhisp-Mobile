@@ -146,7 +146,7 @@ final class TranscriptionModel: ObservableObject {
         let present = await store.present()
         guard phase == .idle, selectedID == selection else { return }
         ready = present
-        status = ready ? "Ready \u00b7 " + store.manifest.name : "Download a model in Models"
+        status = ready ? "Ready \u{00b7} " + store.manifest.name : "Download a model in Models"
     }
 
     func selectModel(_ id: String) {
