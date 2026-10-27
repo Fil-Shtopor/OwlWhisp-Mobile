@@ -228,22 +228,38 @@ private struct MobileModelList: View {
                     DisclosureGroup {
                         ModelDetails(model: model, item: item)
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(model.modelName(item.id)).font(.headline)
-                                if model.selectedID == item.id { Image(systemName: "checkmark.circle.fill").accessibilityLabel("Active") }
-                            }
-                            let languages = item.languages.count > 5 ? String(item.languages.count) + " languages" : item.languages.map { $0.uppercased() }.joined(separator: ", ")
-                            Text(languages + " \u{00b7} " + String(item.downloadBytes / 1024 / 1024) + " MiB \u{00b7} " +
-                                 (model.downloaded.contains(item.id) ? "Downloaded" : "Not downloaded"))
-                                .font(.caption).foregroundStyle(.secondary)
-                            Text(model.metrics(item.id)).font(.caption).foregroundStyle(.secondary)
-                        }.padding(.vertical, 4)
+                        ModelSummary(model: model, item: item)
                     }
                 }
             }
             if model.phase == .downloading { ProgressView(value: model.progress) }
         }.navigationTitle("Models")
+    }
+}
+
+@MainActor
+private struct ModelSummary: View {
+    @ObservedObject var model: TranscriptionModel
+    let item: ModelManifest
+    private var subtitle: String {
+        let languages: String
+        if item.languages.count > 5 { languages = String(item.languages.count) + " languages" }
+        else { languages = item.languages.map { $0.uppercased() }.joined(separator: ", ") }
+        let size = String(item.downloadBytes / 1024 / 1024) + " MiB"
+        let state = model.downloaded.contains(item.id) ? "Downloaded" : "Not downloaded"
+        return [languages, size, state].joined(separator: " \u{00b7} ")
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(model.modelName(item.id)).font(.headline)
+                if model.selectedID == item.id {
+                    Image(systemName: "checkmark.circle.fill").accessibilityLabel("Active")
+                }
+            }
+            Text(subtitle).font(.caption).foregroundStyle(.secondary)
+            Text(model.metrics(item.id)).font(.caption).foregroundStyle(.secondary)
+        }.padding(.vertical, 4)
     }
 }
 
@@ -275,6 +291,15 @@ private struct ModelGuideView: View {
     @State private var language = "en"
     @State private var profile = "device"
     @State private var priority = "everyday"
+    private var selectedTier: String {
+        if priority == "compact" { return "compact" }
+        if profile == "device" { return ModelGuide.tier(memoryGiB: model.memoryGiB) }
+        return model.guide?.profiles.first { $0.id == profile }?.tier ?? "balanced"
+    }
+    private var suggestions: [ModelManifest] {
+        model.guide?.suggest(language: language, tier: selectedTier, coverage: priority == "coverage",
+                             available: model.models, smallest: priority == "compact") ?? []
+    }
     var body: some View {
         Form {
             Section {
@@ -297,9 +322,8 @@ private struct ModelGuideView: View {
                 }
             }
             if let guide = model.guide {
-                let tier = priority == "compact" ? "compact" : profile == "device" ? ModelGuide.tier(memoryGiB: model.memoryGiB) : guide.profiles.first { $0.id == profile }?.tier ?? "balanced"
                 Section("Starting points") {
-                    ForEach(guide.suggest(language: language, tier: tier, coverage: priority == "coverage", available: model.models, smallest: priority == "compact")) { item in
+                    ForEach(suggestions) { item in
                         DisclosureGroup(model.modelName(item.id)) { ModelDetails(model: model, item: item) }
                     }
                     Text(guide.basis).font(.footnote).foregroundStyle(.secondary)
