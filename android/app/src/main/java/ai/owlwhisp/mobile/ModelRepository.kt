@@ -45,8 +45,8 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
     val totalBytes: Long get() = downloads.sumOf { it.getLong("bytes") }
     val installedBytes: Long get() = files.sumOf { it.bytes }
     fun present() = files.all { File(directory, it.name).let { file -> file.isFile && file.length() == it.bytes } }
-    fun verify() {
-        for (entry in files) require(valid(File(directory, entry.name), entry)) {
+    fun verify(cancelled: () -> Boolean = { false }) {
+        for (entry in files) require(valid(File(directory, entry.name), entry, cancelled)) {
             "Model files are corrupt. Download the model again."
         }
     }
@@ -55,37 +55,39 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
         for (spec in downloads) { File(directory, spec.getString("path")).delete(); File(directory, spec.getString("path") + ".part").delete() }
         directory.delete()
     }
-    fun install(onProgress: (Long, Long) -> Unit) {
+    fun install(cancelled: () -> Boolean = { false }, onProgress: (Long, Long) -> Unit) {
         require(supported) { "Whistle requires an ARM64 device" }
         check(directory.mkdirs() || directory.isDirectory)
         var completed = 0L
         for (spec in downloads) {
+            checkCancelled(cancelled)
             val unpack = spec.optJSONArray("unpack")
             if (unpack == null) {
                 val entry = parse(spec)
                 val destination = File(directory, entry.name)
-                if (!valid(destination, entry)) download(entry, destination) { count -> onProgress(completed + count, totalBytes) }
-            } else if (!files.all { valid(File(directory, it.name), it) }) {
+                if (!valid(destination, entry, cancelled)) download(entry, destination, cancelled) { count -> onProgress(completed + count, totalBytes) }
+            } else if (!files.all { valid(File(directory, it.name), it, cancelled) }) {
                 val entry = parse(spec)
                 val archive = File(directory, entry.name)
                 try {
-                    download(entry, archive) { count -> onProgress(completed + count, totalBytes) }
+                    download(entry, archive, cancelled) { count -> onProgress(completed + count, totalBytes) }
                     val expected = (0 until unpack.length()).associate { unpack.getJSONObject(it).let { row -> row.getString("archive_path") to parse(row) } }
-                    unpack(archive, expected)
+                    unpack(archive, expected, cancelled)
                 } finally { archive.delete() }
             }
             completed += spec.getLong("bytes"); onProgress(completed, totalBytes)
         }
-        verify()
+        verify(cancelled)
     }
 
-    private fun unpack(archive: File, expected: Map<String, ModelFile>) {
+    private fun unpack(archive: File, expected: Map<String, ModelFile>, cancelled: () -> Boolean) {
         val staged = mutableListOf<Pair<File, File>>()
         try {
             GZIPInputStream(archive.inputStream().buffered()).use { input ->
                 val header = ByteArray(512)
                 val seen = mutableSetOf<String>()
                 while (true) {
+                    checkCancelled(cancelled)
                     var read = 0
                     while (read < 512) { val n = input.read(header, read, 512 - read); require(n >= 0) { "Incomplete TAR archive" }; read += n }
                     if (header.all { it == 0.toByte() }) break
@@ -100,18 +102,19 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
                         staged.add(partial to File(directory, entry.name))
                         partial.outputStream().buffered().use { out ->
                             var left = size; val buffer = ByteArray(256 * 1024)
-                            while (left > 0) { val n = input.read(buffer, 0, minOf(left, buffer.size.toLong()).toInt()); require(n > 0); out.write(buffer, 0, n); left -= n }
+                            while (left > 0) { checkCancelled(cancelled); val n = input.read(buffer, 0, minOf(left, buffer.size.toLong()).toInt()); require(n > 0); out.write(buffer, 0, n); left -= n }
                         }
-                        require(valid(partial, entry)) { "Extracted model failed SHA-256 verification" }
+                        require(valid(partial, entry, cancelled)) { "Extracted model failed SHA-256 verification" }
                     } else {
                         var left = size
-                        while (left > 0) { val n = input.skip(left); require(n > 0); left -= n }
+                        while (left > 0) { checkCancelled(cancelled); val n = input.skip(left); require(n > 0); left -= n }
                     }
                     var padding = (512 - size % 512) % 512
                     while (padding > 0) { val n = input.skip(padding); require(n > 0); padding -= n }
                 }
                 require(seen == expected.keys) { "Incomplete model archive" }
             }
+            checkCancelled(cancelled)
             for ((part, dest) in staged) java.nio.file.Files.move(part.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
         } finally { staged.forEach { it.first.delete() } }
     }
@@ -125,16 +128,20 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
         require(bytes > 0 && hash.matches(Regex("[a-f0-9]{64}")))
         return ModelFile(name, url, bytes, hash)
     }
-    private fun valid(file: File, entry: ModelFile): Boolean {
+    private fun checkCancelled(cancelled: () -> Boolean) {
+        if (cancelled()) throw java.util.concurrent.CancellationException("Model download cancelled")
+    }
+    private fun valid(file: File, entry: ModelFile, cancelled: () -> Boolean = { false }): Boolean {
+        checkCancelled(cancelled)
         if (!file.isFile || file.length() != entry.bytes) return false
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().buffered().use { input ->
             val buffer = ByteArray(256 * 1024)
-            while (true) { val size = input.read(buffer); if (size < 0) break; digest.update(buffer, 0, size) }
+            while (true) { checkCancelled(cancelled); val size = input.read(buffer); if (size < 0) break; digest.update(buffer, 0, size) }
         }
         return digest.digest().joinToString("") { "%02x".format(it) } == entry.sha256
     }
-    private fun download(entry: ModelFile, destination: File, onProgress: (Long) -> Unit) {
+    private fun download(entry: ModelFile, destination: File, cancelled: () -> Boolean, onProgress: (Long) -> Unit) {
         require(entry.url.startsWith("https://"))
         val partial = File(directory, entry.name + ".part")
         check(partial.parentFile!!.mkdirs() || partial.parentFile!!.isDirectory)
@@ -149,13 +156,15 @@ class ModelRepository(context: Context, val id: String = "parakeet-tdt-0.6b-v3")
                 partial.outputStream().buffered().use { output ->
                     val buffer = ByteArray(256 * 1024)
                     while (true) {
+                        checkCancelled(cancelled)
                         val size = input.read(buffer); if (size < 0) break
                         downloaded += size; require(downloaded <= entry.bytes)
                         output.write(buffer, 0, size); onProgress(downloaded)
                     }
                 }
             }
-            require(valid(partial, entry)) { "Model failed SHA-256 verification" }
+            require(valid(partial, entry, cancelled)) { "Model failed SHA-256 verification" }
+            checkCancelled(cancelled)
             java.nio.file.Files.move(partial.toPath(), destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
         } finally { connection.disconnect(); partial.delete() }
     }

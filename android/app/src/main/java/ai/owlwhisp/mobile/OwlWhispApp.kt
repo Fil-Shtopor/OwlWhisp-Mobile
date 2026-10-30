@@ -8,6 +8,7 @@ import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 enum class Phase { IDLE, DOWNLOADING, RECORDING, PROCESSING, BENCHMARK, ERROR }
 data class AppState(val phase: Phase, val message: String, val progress: Int = 0, val transcript: String = "")
@@ -122,23 +123,72 @@ class OwlWhispApp : Application() {
         main.removeCallbacks(idleRelease)
         worker.execute { client.unload(); main.post { if (!busy) publish(AppState(Phase.IDLE, "Model unloaded from memory")) } }
     }
+    private class ModelDownload(val repository: ModelRepository, val token: Long) {
+        val cancelled = AtomicBoolean(false)
+        var reason = "Download cancelled. Tap Download to retry."
+        var service: ModelDownloadService? = null
+    }
+    private var downloadSequence = 0L
+    private var download: ModelDownload? = null
+    val downloadingModelID get() = download?.repository?.id
+    val downloadCancelling get() = download?.cancelled?.get() == true
+
     fun installModel(repository: ModelRepository = model) {
         if (busy || !repository.supported) return
-        publish(AppState(Phase.DOWNLOADING, "Downloading: " + repository.name))
+        val job = ModelDownload(repository, ++downloadSequence)
+        download = job
+        publish(AppState(Phase.DOWNLOADING, "Downloading " + guide.name(repository.id) + ": 0%"))
+        try {
+            startForegroundService(Intent(this, ModelDownloadService::class.java)
+                .setAction(ModelDownloadService.START).putExtra("token", job.token))
+        } catch (error: Exception) {
+            download = null
+            publish(AppState(Phase.ERROR, error.message ?: "Could not start model download"))
+        }
+    }
+    internal fun acceptsDownload(token: Long) = download?.token == token
+    internal fun beginModelDownload(service: ModelDownloadService, token: Long) {
+        val job = download?.takeIf { it.token == token } ?: return
+        if (job.service != null) return
+        job.service = service
         worker.execute {
-            try {
+            val outcome = runCatching {
                 var lastUpdate = 0L
-                repository.install { done, total ->
-                    val now = System.currentTimeMillis()
-                    if (now - lastUpdate > 150 || done == total) {
+                job.repository.install(cancelled = { job.cancelled.get() }) { done, total ->
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastUpdate > 250 || done == total) {
                         lastUpdate = now
                         val percent = (done * 100 / total).toInt()
-                        main.post { publish(AppState(Phase.DOWNLOADING, "Downloading: " + percent + "%", percent)) }
+                        main.post {
+                            if (download === job && !job.cancelled.get()) {
+                                publish(AppState(Phase.DOWNLOADING, "Downloading " + guide.name(job.repository.id) + ": " + percent + "%", percent))
+                                service.progress(percent)
+                            }
+                        }
                     }
                 }
-                main.post { publish(AppState(Phase.IDLE, "Model verified. Ready to dictate.")) }
-            } catch (failure: Exception) { main.post { publish(AppState(Phase.ERROR, failure.message ?: "Download failed")) } }
+            }
+            main.post {
+                if (download === job) {
+                    download = null
+                    service.finish()
+                    val message = if (job.cancelled.get()) job.reason else outcome.fold(
+                        { guide.name(job.repository.id) + " downloaded. Choose Use model in Models." },
+                        { it.message ?: "Download failed. Tap Download to retry." })
+                    publish(AppState(if (job.cancelled.get() || outcome.isSuccess) Phase.IDLE else Phase.ERROR, message))
+                }
+            }
         }
+    }
+    fun cancelModelDownload(reason: String = "Download cancelled. Tap Download to retry.") {
+        val job = download ?: return
+        job.reason = reason
+        job.cancelled.set(true)
+        publish(state.copy(message = "Cancelling model download..."))
+        job.service?.cancelling()
+    }
+    internal fun modelDownloadServiceLost(service: ModelDownloadService) {
+        if (download?.service === service) cancelModelDownload("Download interrupted. Tap Download to retry; verified files are kept.")
     }
     fun deleteModel(repository: ModelRepository) {
         if (busy) return

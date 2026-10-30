@@ -5,13 +5,13 @@ Offline voice input for Android and iPhone, in a separate repository from
 
 ## Downloads
 
-**OwlWhisp Mobile 0.1.6** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.6).
+**OwlWhisp Mobile 0.1.7** - [release notes](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/tag/v0.1.7).
 
 | Platform | Application download | Installation |
 |---|---|---|
-| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.6/OwlWhisp-Mobile-0.1.6-android.apk)** | Signed APK; updates existing OwlWhisp installations |
-| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.6/OwlWhisp-Mobile-0.1.6-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
-| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.6/OwlWhisp-Mobile-0.1.6-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
+| **Android**, ARM64 / x86_64, Android 9+ | **[Download Android APK](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.7/OwlWhisp-Mobile-0.1.7-android.apk)** | Signed APK; updates existing OwlWhisp installations |
+| **iPhone / iPad**, ARM64, iOS 16+ | **[Download iOS IPA](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.7/OwlWhisp-Mobile-0.1.7-ios-unsigned.ipa)** | **Personal signing required** before installation; [instructions](ios/README.md#personal-signing-from-windows-or-macos) |
+| iOS Simulator, macOS with Xcode | [Download simulator app ZIP](https://github.com/Fil-Shtopor/OwlWhisp-Mobile/releases/download/v0.1.7/OwlWhisp-Mobile-0.1.7-ios-simulator.app.zip) | ARM64 / x86_64; simulator only |
 
 Models download separately. The iPhone IPA is unsigned and is not a TestFlight/App Store
 release. A free Apple account can be used for personal signing. Checksums and build provenance
@@ -24,18 +24,18 @@ including Russian. Models download separately from the APK.
 
 - **Settings > App updates:** automatic stable-release checks and manual checks.
   Android verifies and downloads the APK, then opens the system installer. iOS offers the
-  unsigned IPA for personal signing. Install 0.1.6 manually once to enable future checks.
+  unsigned IPA for personal signing. Versions before 0.1.6 require one manual update to enable checks.
   [Update behavior](docs/app-updates.md).
 - **Settings > Language models > Experimental language switch:** assign a model per
   language, then switch in the Android voice panel or iOS Dictate between recordings.
   Disabled by default; the button is hidden while disabled.
 - **Models:** compact per-model WER/RTF measurements by language, plus a phone/language
-  guide with everyday, smallest-download and multilingual priorities.
+  recommendations with everyday, smallest-download and multilingual priorities. Download directly from the recommendations.
   [Choosing a model](docs/model-selection.md).
 
 ## Android
 
-Version 0.1.6 includes guided keyboard setup and a regular selectable voice IME.
+Version 0.1.7 includes guided keyboard setup and a regular selectable voice IME.
 [Voice panel preview](docs/validation/android-voice-panel-ready.png).
 
 - The same five sections as desktop: Dictate, Settings, Models, Benchmark, Diagnostics.
@@ -43,6 +43,7 @@ Version 0.1.6 includes guided keyboard setup and a regular selectable voice IME.
 - Microphone capture, editable transcript, clipboard copy and a voice input method (IME).
 - A circular microphone with smaller keyboard/settings buttons, recording timer and navigation-safe spacing.
 - Verified downloads, model selection, repair and deletion.
+- Android model downloads continue across tabs, app switching and screen lock, with progress and Cancel in a foreground notification.
 - Compact benchmark: clip counts by language, overall word error rate (WER), RTF and processing time.
   Detailed per-clip results, transcripts and sampled maximum PSS remain in the shared JSON report.
 - Disposable inference process: immediate unloading by default. Parakeet can optionally stay

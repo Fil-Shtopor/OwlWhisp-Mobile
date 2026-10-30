@@ -33,10 +33,16 @@ accuracy ranking, and RTF measured on one phone is not a prediction for another.
 
 ## Phone and language guide
 
-Models > Find a model for your phone and language offers the detected phone memory class,
+Models > Model recommendations offers the detected phone memory class,
 example phone profiles, a language and a priority: everyday dictation, smallest download or
 multilingual dictation. Suggestions filter out unsupported languages and platform runtimes.
 The smallest-download option actually sorts the eligible shipped downloads by byte size.
+
+These filters only change the recommendations. They do not change the selected model or
+language shortcuts, and they do not start a download. Each recommendation shows its size
+and a Download button. Tap Download, wait for verification, then tap Use model (or Use for
+the recommended language when language shortcuts are enabled). There is no need to close
+the recommendations to start a download.
 
 The default starting points are GigaAM v3 for Russian, Moonshine Tiny for compact English
 dictation, Parakeet v3 for mixed European languages and SenseVoice for its supported East
@@ -58,3 +64,23 @@ Language support follows the exact pinned manifests in shared/models/. Model sou
 [SenseVoice](https://huggingface.co/FunAudioLLM/SenseVoiceSmall). Phone reference specifications
 are linked per example profile. Recommendation priorities are OwlWhisp heuristics, not
 performance statements from those manufacturers.
+
+## Downloading while switching screens
+
+On Android, an explicit model download runs in a data-sync foreground service with a
+progress notification and a Cancel action. You can switch app tabs, close recommendations,
+open another app or lock the screen. The main app shows progress and Cancel on every tab.
+The service and its wake lock stop after completion, cancellation or an error. Denying
+notification permission does not cancel the transfer; Android controls notification visibility.
+
+Downloads are still subject to Android's system limits, force-stop and network failures.
+Retry from Models or recommendations after an interruption. Already verified files are
+reused; an incomplete file is downloaded again and never offered as a ready model. File
+sizes and SHA-256 hashes are verified before installation.
+
+On iOS, download tasks belong to the app model rather than a tab or recommendation row.
+You can navigate within the app during a download. This release does not add persistent iOS
+background URLSession downloads; keep the app active for large transfers.
+
+[Android data-sync foreground services](https://developer.android.com/develop/background-work/services/fgs/service-types#data-sync)
+and [system time limits](https://developer.android.com/develop/background-work/services/fgs/timeout).

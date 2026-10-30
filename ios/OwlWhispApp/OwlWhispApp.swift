@@ -220,7 +220,7 @@ private struct MobileModelList: View {
     var body: some View {
         Form {
             Section {
-                NavigationLink("Find a model for your phone and language") { ModelGuideView(model: model) }
+                NavigationLink("Model recommendations") { ModelGuideView(model: model) }
                 Text(model.status).font(.footnote).foregroundStyle(.secondary)
             }
             Section("Speech models") {
@@ -303,6 +303,8 @@ private struct ModelGuideView: View {
     var body: some View {
         Form {
             Section {
+                Text("Get suggestions for your language and phone. These filters do not download or select a model.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Picker("Language", selection: $language) {
                     ForEach(model.allLanguages, id: \.self) { Text(ModelGuide.languageName($0)).tag($0) }
                 }
@@ -322,13 +324,44 @@ private struct ModelGuideView: View {
                 }
             }
             if let guide = model.guide {
-                Section("Starting points") {
+                Section {
+                    Text("Recommendations only. Tap Download to install a model, then Use model to select it.")
+                        .font(.footnote).foregroundStyle(.secondary)
                     ForEach(suggestions) { item in
-                        DisclosureGroup(model.modelName(item.id)) { ModelDetails(model: model, item: item) }
+                        RecommendedModelRow(model: model, item: item, language: language)
                     }
                     Text(guide.basis).font(.footnote).foregroundStyle(.secondary)
                 }
             }
-        }.navigationTitle("Model guide")
+        }.navigationTitle("Model recommendations")
+    }
+}
+
+@MainActor
+private struct RecommendedModelRow: View {
+    @ObservedObject var model: TranscriptionModel
+    let item: ModelManifest
+    let language: String
+    private var isDownloading: Bool { model.downloadingModelID == item.id }
+    private var isDownloaded: Bool { model.downloaded.contains(item.id) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ModelSummary(model: model, item: item)
+            Text(model.guide?.purpose(item.id) ?? "").font(.footnote).foregroundStyle(.secondary)
+            if isDownloading {
+                ProgressView(value: model.progress)
+                Text(model.status).font(.caption)
+            } else if isDownloaded {
+                Button(model.languageRoutingEnabled ? "Use for " + ModelGuide.languageName(language) : "Use model") {
+                    if model.languageRoutingEnabled {
+                        model.assignLanguage(language, id: item.id)
+                        model.chooseLanguage(language)
+                    } else { model.selectModel(item.id) }
+                }.disabled(model.phase != .idle)
+            } else {
+                Button("Download (" + String(item.downloadBytes / 1024 / 1024) + " MiB)") { model.install(item.id) }
+                    .disabled(model.phase != .idle)
+            }
+        }.padding(.vertical, 4)
     }
 }

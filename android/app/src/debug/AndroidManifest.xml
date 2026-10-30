@@ -5,6 +5,7 @@
         <activity android:name=".EditorTestActivity" android:exported="false" />
         <activity android:name=".RemoteEditorTestActivity" android:process=":editor_test" android:exported="false" />
     </application>
+    <instrumentation android:name=".ModelDownloadInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Model download lifecycle checks" />
     <instrumentation android:name=".MobileFeaturesInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Update, language and model guide checks" />
     <instrumentation android:name=".EditorDeliveryInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Remembered editor delivery checks" />
     <instrumentation android:name=".CatalogInstrumentation" android:targetPackage="ai.owlwhisp.mobile" android:label="Downloaded model recognition checks" />

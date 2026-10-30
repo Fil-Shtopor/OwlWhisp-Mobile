@@ -15,6 +15,7 @@ final class TranscriptionModel: ObservableObject {
     @Published var phase: Phase = .idle
     @Published var status = "Download a model to get started"
     @Published var progress = 0.0
+    @Published private(set) var downloadingModelID: String?
     @Published var ready = false
     @Published var text = ""
     @Published var benchmarkReport = ""
@@ -167,10 +168,13 @@ final class TranscriptionModel: ObservableObject {
     func install(_ id: String? = nil) {
         guard let store = stores[id ?? selectedID], phase == .idle else { return }
         phase = .downloading
+        downloadingModelID = store.manifest.id
+        progress = 0
         status = "Downloading model…"
         let token = UUID()
         generation = token
         job = Task {
+            defer { if generation == token { downloadingModelID = nil } }
             do {
                 try await store.install { value in
                     Task { @MainActor [weak self] in
@@ -180,7 +184,7 @@ final class TranscriptionModel: ObservableObject {
                     }
                 }
                 guard generation == token else { return }
-                downloaded.insert(store.manifest.id); ready = downloaded.contains(selectedID); phase = .idle; status = "Model verified. Ready to dictate."
+                downloaded.insert(store.manifest.id); ready = downloaded.contains(selectedID); phase = .idle; status = modelName(store.manifest.id) + " downloaded. Choose Use model in Models."
             } catch {
                 guard generation == token else { return }
                 phase = .idle; status = error.localizedDescription

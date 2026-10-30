@@ -32,6 +32,8 @@ class MainActivity : Activity() {
     private val updateObserver: () -> Unit = { renderUpdates() }
     private lateinit var status: TextView
     private lateinit var progress: ProgressBar
+    private lateinit var cancelDownload: Button
+    private var modelGuideDialog: AlertDialog? = null
     private lateinit var content: LinearLayout
     private var transcript: EditText? = null
     private var record: Button? = null
@@ -80,6 +82,11 @@ class MainActivity : Activity() {
         root.addView(status)
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100 }
         root.addView(progress)
+        cancelDownload = Button(this).apply {
+            text = "Cancel model download"; isAllCaps = false; setTextColor(Palette.accent)
+            setOnClickListener { app.cancelModelDownload() }
+        }
+        root.addView(cancelDownload)
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { isFillViewport = true; addView(content) }, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(navigation, LinearLayout.LayoutParams(-1, dp(60)))
@@ -187,7 +194,7 @@ class MainActivity : Activity() {
                 content.addView(label("On Samsung, select OwlWhisp with the system keyboard picker. Samsung controls which providers its microphone button can open; remapping that button is not guaranteed.", true))
             }
             2 -> {
-                button("Find a model for your phone and language") { showModelGuide() }
+                button("Model recommendations") { showModelGuide() }
                 app.models.forEach { repository -> modelCard(repository) }
             }
             3 -> {
@@ -310,20 +317,73 @@ class MainActivity : Activity() {
         profile.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, profileLabels)
         val goal = Spinner(this)
         goal.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("Everyday dictation", "Smallest download", "Multilingual dictation"))
+        box.addView(label("Get suggestions for your language and phone. These filters do not download or select a model.", true))
         box.addView(label("Language")); box.addView(language)
         box.addView(label("Phone profile")); box.addView(profile)
         box.addView(label("Priority")); box.addView(goal)
         box.addView(label(app.guide.data.getString("basis"), true))
-        AlertDialog.Builder(this).setTitle("Model guide").setView(box).setNegativeButton("Cancel", null)
-            .setPositiveButton("Show suggestions") { _, _ ->
+        modelGuideDialog?.dismiss()
+        modelGuideDialog = AlertDialog.Builder(this).setTitle("Model recommendations").setView(ScrollView(this).apply { addView(box) }).setNegativeButton("Close", null)
+            .setPositiveButton("See recommended models") { _, _ ->
                 val code = languages[language.selectedItemPosition]
                 app.preferences.edit().putString("guide_language", code).apply()
                 val tier = if (goal.selectedItemPosition == 1) "compact" else if (profile.selectedItemPosition == 0) app.guide.deviceTier else app.guide.profiles[profile.selectedItemPosition - 1].getString("tier")
                 val suggestions = app.guide.recommend(code, tier, goal.selectedItemPosition == 2, app.models, goal.selectedItemPosition == 1)
-                AlertDialog.Builder(this).setTitle(ModelGuide.languageName(code) + " - starting points")
-                    .setItems(suggestions.map { app.guide.name(it.id) + "\n" + app.guide.purpose(it.id) }.toTypedArray()) { _, index -> modelDetails(suggestions[index]) }
-                    .setNegativeButton("Close", null).show()
-            }.show()
+                showRecommendedModels(code, suggestions)
+            }.create().also { it.show() }
+    }
+    private fun showRecommendedModels(language: String, suggestions: List<ModelRepository>) {
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(8), dp(18), dp(8)) }
+        box.addView(label("Recommendations only. Tap Download to install a model, then Use model to select it. Downloads continue when you close this window or switch screens.", true))
+        val rows = suggestions.map { repository ->
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(8), dp(12), dp(8))
+                background = android.graphics.drawable.GradientDrawable().apply { setColor(Palette.raised); cornerRadius = dp(12).toFloat() }
+            }
+            card.addView(label(app.guide.name(repository.id)).apply { setTypeface(null, Typeface.BOLD) })
+            card.addView(label(app.guide.purpose(repository.id), true))
+            val state = label("", true); card.addView(state)
+            val action = Button(this).apply {
+                isAllCaps = false; setTextColor(Palette.accent)
+                setOnClickListener {
+                    if (!repository.present()) app.installModel(repository)
+                    else {
+                        if (app.routingEnabled) { app.assignLanguage(language, repository.id); app.chooseLanguage(language) }
+                        else app.selectModel(repository.id)
+                        modelGuideDialog?.dismiss(); showTab(2)
+                    }
+                }
+            }
+            card.addView(action)
+            box.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            Triple(repository, state, action)
+        }
+        if (suggestions.isEmpty()) box.addView(label("No compatible models for these filters. Try another language."))
+        box.addView(label(app.guide.data.getString("basis"), true))
+        val dialog = AlertDialog.Builder(this).setTitle("Recommended for " + ModelGuide.languageName(language))
+            .setView(ScrollView(this).apply { addView(box) })
+            .setPositiveButton("Done", null).setNegativeButton("Change filters") { _, _ -> showModelGuide() }.create()
+        val update: (AppState) -> Unit = {
+            rows.forEach { (repository, state, action) ->
+                val downloading = app.downloadingModelID == repository.id
+                val present = repository.present()
+                val size = (repository.totalBytes / 1024 / 1024).toString() + " MiB"
+                state.text = if (downloading) app.state.message else size + if (present) " - Downloaded" else " - Not downloaded"
+                action.text = when {
+                    downloading -> if (app.downloadCancelling) "Cancelling..." else "Downloading " + app.state.progress + "%"
+                    !present -> "Download (" + size + ")"
+                    app.routingEnabled -> "Use for " + ModelGuide.languageName(language)
+                    else -> "Use model"
+                }
+                action.isEnabled = !app.busy
+            }
+        }
+        modelGuideDialog = dialog
+        dialog.setOnDismissListener {
+            app.removeObserver(update)
+            if (modelGuideDialog === dialog) modelGuideDialog = null
+        }
+        dialog.show(); app.observe(update)
     }
     private fun openURL(url: String) { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
     private fun renderUpdates() {
@@ -390,6 +450,8 @@ class MainActivity : Activity() {
             if (editor.text.toString() != app.draftText) { editor.setText(app.draftText); editor.setSelection(editor.length()) }
             editor.isEnabled = !app.busy
         }
+        cancelDownload.visibility = if (app.downloadingModelID != null) View.VISIBLE else View.GONE
+        cancelDownload.isEnabled = !app.downloadCancelling
         progress.visibility = if (state.phase == Phase.DOWNLOADING) View.VISIBLE else View.GONE; progress.progress = state.progress
         actions.forEach { it.isEnabled = !app.busy && actionConditions[it]?.invoke() != false }
         liveInsertionSwitch?.isEnabled = !app.busy
@@ -414,7 +476,7 @@ class MainActivity : Activity() {
         app.updates.onLaunch(); renderUpdates()
     }
     override fun onPause() { if (!app.busy) app.unload(); super.onPause() }
-    override fun onDestroy() { app.detach(this); app.removeObserver(observer); app.updates.removeObserver(updateObserver); super.onDestroy() }
+    override fun onDestroy() { modelGuideDialog?.dismiss(); app.detach(this); app.removeObserver(observer); app.updates.removeObserver(updateObserver); super.onDestroy() }
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("transcript", transcript?.text?.toString() ?: savedText); outState.putInt("tab", currentTab); super.onSaveInstanceState(outState)
     }
